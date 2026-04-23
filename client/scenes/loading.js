@@ -79,7 +79,7 @@ class LoadingScene extends Scene {
     ctx.fillStyle = '#ffffff'
     ctx.font = 'bold 36px sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText('羊了个羊', width / 2, height / 2 - 60)
+    ctx.fillText('牛马日记', width / 2, height / 2 - 60)
 
     const barWidth = width * 0.6
     const barHeight = 12
