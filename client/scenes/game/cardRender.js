@@ -151,31 +151,57 @@ function isBlocked(card, cards) {
   return false
 }
 
+/** 绘制圆角矩形路径 */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
 /**
  * 绘制棋盘区所有卡牌
  * @param {CanvasRenderingContext2D} ctx
  * @param {Array} cards
  */
 function renderCards(ctx, cards) {
+  const depth = 10  // 3D厚度（像素）
+  const radius = 8  // 圆角半径
+
   for (const card of cards) {
     if (card.removed) continue
     const blocked = isBlocked(card, cards)
 
-    // 卡牌底色
+    // 卡牌侧面（底部厚度）
+    ctx.fillStyle = blocked ? '#4a5354' : '#b8923a'
+    roundRect(ctx, card.x + 1, card.y + depth, card.width, card.height, radius)
+    ctx.fill()
+
+    // 卡牌正面底色
     ctx.fillStyle = blocked ? '#636e72' : '#fffdf5'
-    ctx.fillRect(card.x, card.y, card.width, card.height)
+    roundRect(ctx, card.x, card.y, card.width, card.height, radius)
+    ctx.fill()
 
     // 卡牌边框
     ctx.strokeStyle = blocked ? '#999' : '#c8a96e'
     ctx.lineWidth = 1.5
-    ctx.strokeRect(card.x, card.y, card.width, card.height)
+    roundRect(ctx, card.x, card.y, card.width, card.height, radius)
+    ctx.stroke()
 
-    // 图标（图片或文字兖底）
+    // 图标（图片或文字兄底）
     const iconImg = ICON_IMGS[card.icon]
     if (iconImg) {
       const pad = card.width * CARD_ICON_PAD
       if (blocked) { ctx.globalAlpha = 0.5 }
+      // 裁剪圆角区域
+      ctx.save()
+      roundRect(ctx, card.x, card.y, card.width, card.height, radius)
+      ctx.clip()
       ctx.drawImage(iconImg, card.x + pad, card.y + pad, card.width - pad * 2, card.height - pad * 2)
+      ctx.restore()
       if (blocked) { ctx.globalAlpha = 1.0 }
     } else {
       const fontSize = Math.round(card.width * CARD_FONT_SCALE)
@@ -245,10 +271,40 @@ function renderSlots(ctx, slots, config) {
   }
 }
 
+/**
+ * 计算某个槽位索引的屏幕位置
+ * @param {number} index    - 槽位索引
+ * @param {Object} config   - { width, height }
+ * @returns {{ x, y, size }}
+ */
+function getSlotPosition(index, config) {
+  const { width, height } = config
+  const slotSize = Math.round(width * SLOT_SIZE_SCALE)
+  const slotGap = Math.round(width * SLOT_GAP_SCALE)
+  const bottomMargin = Math.round(height * SLOT_BOTTOM)
+  const padding = Math.round(width * SLOT_PAD_SCALE)
+  const maxSlots = 7
+  const totalSlotWidth = maxSlots * (slotSize + slotGap)
+  const slotStartX = (width - totalSlotWidth) / 2
+  const slotY = height - slotSize - bottomMargin - padding * 2
+  return {
+    x: slotStartX + index * (slotSize + slotGap),
+    y: slotY,
+    size: slotSize
+  }
+}
+
+/** 获取卡牌图标图片 */
+function getIconImg(icon) {
+  return ICON_IMGS[icon] || null
+}
+
 module.exports = {
   preloadImages,
   generateCards,
   isBlocked,
   renderCards,
-  renderSlots
+  renderSlots,
+  getSlotPosition,
+  getIconImg
 }

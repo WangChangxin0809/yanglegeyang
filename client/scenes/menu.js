@@ -10,9 +10,16 @@ class MenuScene extends Scene {
     this.startBtn = null
     this.startImg = null
     this.bgImg = null
+    this.titleImg = null
+    this.titleTimer = 0
   }
 
   onEnter() {
+    // 加载标题图片
+    const titleImg = wx.createImage()
+    titleImg.src = 'images/menu/title.png'
+    titleImg.onload = () => { this.titleImg = titleImg }
+
     const btnWidth = this.width * 0.5
     const btnHeight = 60
 
@@ -54,7 +61,9 @@ class MenuScene extends Scene {
     }
   }
 
-  update(dt) {}
+  update(dt) {
+    this.titleTimer += dt
+  }
 
   render() {
     const { ctx, width, height } = this
@@ -67,18 +76,45 @@ class MenuScene extends Scene {
       ctx.fillRect(0, 0, width, height)
     }
 
+    // 标题图片
+    if (this.titleImg) {
+      const imgRatio = this.titleImg.width / this.titleImg.height
+      const titleW = width * 0.98
+      const titleH = titleW / imgRatio
+      const titleCX = width / 2
+      const titleCY = height * 0.36
+
+      const angle = Math.sin(this.titleTimer / 800) * 0.06
+
+      ctx.save()
+      ctx.translate(titleCX, titleCY)
+      ctx.rotate(angle)
+      ctx.drawImage(this.titleImg, -titleW / 2, -titleH / 2, titleW, titleH)
+      ctx.restore()
+    }
+
     // 开始游戏按钮
     const btn = this.startBtn
+    const scale = 1 + Math.sin(this.titleTimer / 500) * 0.06
+    const btnCX = btn.x + btn.width / 2
+    const btnCY = btn.y + btn.height / 2
+
+    ctx.save()
+    ctx.translate(btnCX, btnCY)
+    ctx.scale(scale, scale)
+
     if (this.startImg) {
-      ctx.drawImage(this.startImg, btn.x, btn.y, btn.width, btn.height)
+      ctx.drawImage(this.startImg, -btn.width / 2, -btn.height / 2, btn.width, btn.height)
     } else {
       ctx.beginPath()
       const r = 10
-      ctx.moveTo(btn.x + r, btn.y)
-      ctx.arcTo(btn.x + btn.width, btn.y, btn.x + btn.width, btn.y + btn.height, r)
-      ctx.arcTo(btn.x + btn.width, btn.y + btn.height, btn.x, btn.y + btn.height, r)
-      ctx.arcTo(btn.x, btn.y + btn.height, btn.x, btn.y, r)
-      ctx.arcTo(btn.x, btn.y, btn.x + btn.width, btn.y, r)
+      const bx = -btn.width / 2
+      const by = -btn.height / 2
+      ctx.moveTo(bx + r, by)
+      ctx.arcTo(bx + btn.width, by, bx + btn.width, by + btn.height, r)
+      ctx.arcTo(bx + btn.width, by + btn.height, bx, by + btn.height, r)
+      ctx.arcTo(bx, by + btn.height, bx, by, r)
+      ctx.arcTo(bx, by, bx + btn.width, by, r)
       ctx.closePath()
       ctx.fillStyle = '#4ecca3'
       ctx.fill()
@@ -87,8 +123,9 @@ class MenuScene extends Scene {
       ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2)
+      ctx.fillText(btn.text, 0, 0)
     }
+    ctx.restore()
   }
 }
 
