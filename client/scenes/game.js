@@ -3,6 +3,7 @@ const LEVELS = require('./game/levels')
 const cardRender = require('./game/cardRender')
 const gameLogic = require('./game/gameLogic')
 const props = require('./game/props/index')
+const { post } = require('../utils/request')
 
 /**
  * 游戏核心场景
@@ -46,6 +47,8 @@ class GameScene extends Scene {
     this.peekCards = []    // 透视中的卡牌引用
     this.peekTimer = 0     // 透视剩余时间 ms
     this.showConfirm = false // 退出确认弹窗
+    this.levelStartTime = 0  // 关卡开始时间戳
+    this.recordSubmitted = false // 通关记录是否已提交
   }
 
   /** 从菜单进入时重置关卡 */
@@ -63,6 +66,8 @@ class GameScene extends Scene {
     this._nextLevel = false
     this.history = []
     this.stash = []
+    this.recordSubmitted = false
+    this.levelStartTime = Date.now()
 
     // 加载背景图
     const bg = wx.createImage()
@@ -244,6 +249,19 @@ class GameScene extends Scene {
         const result = gameLogic.checkResult(this.cards, this.slots, this.maxSlots, this.stash)
         this.gameOver = result.gameOver
         this.gameWin = result.gameWin
+
+        // 通关时上报记录
+        if (this.gameWin && !this.recordSubmitted) {
+          this.recordSubmitted = true
+          const clearTime = (Date.now() - this.levelStartTime) / 1000
+          console.log('[game] 通关！关卡:', this.level, '耗时:', clearTime.toFixed(1) + 's')
+          if (GameGlobal.token) {
+            post('/api/record/submit', { level_id: this.level, clear_time: clearTime })
+              .then((data) => console.log('[game] 通关记录已上报, id:', data.id))
+              .catch((err) => console.warn('[game] 上报失败:', err))
+          }
+        }
+
         if (this.gameWin && this.level < LEVELS.length) {
           this._nextLevel = true
         }

@@ -12,6 +12,9 @@ GameGlobal.screenWidth = 0
 GameGlobal.screenHeight = 0
 GameGlobal.pixelRatio = 1
 
+// 服务器配置
+GameGlobal.serverUrl = 'http://127.0.0.1:8000'
+
 // 用户信息
 GameGlobal.token = ''
 GameGlobal.userInfo = null

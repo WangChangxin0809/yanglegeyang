@@ -8,6 +8,7 @@ class MenuScene extends Scene {
   constructor() {
     super()
     this.startBtn = null
+    this.rankBtn = null
     this.startImg = null
     this.bgImg = null
     this.titleImg = null
@@ -32,6 +33,16 @@ class MenuScene extends Scene {
       width: btnWidth,
       height: btnHeight,
       action: 'start'
+    }
+
+    // 排行榜按钮（左上角）
+    const rankSize = Math.round(this.width * 0.1)
+    this.rankBtn = {
+      text: '排行榜',
+      x: this.width * 0.03,
+      y: this.height * 0.02,
+      width: rankSize,
+      height: rankSize
     }
 
     // 加载背景图
@@ -64,11 +75,21 @@ class MenuScene extends Scene {
   }
 
   onTouchStart(x, y) {
+    // 开始游戏按钮
     const btn = this.startBtn
     if (btn && x >= btn.x && x <= btn.x + btn.width &&
         y >= btn.y && y <= btn.y + btn.height) {
       console.log('点击了: 开始游戏')
       if (this.onStartGame) this.onStartGame()
+      return
+    }
+
+    // 排行榜按钮
+    const rb = this.rankBtn
+    if (rb && x >= rb.x && x <= rb.x + rb.width &&
+        y >= rb.y && y <= rb.y + rb.height) {
+      console.log('点击了: 排行榜')
+      if (this.onRank) this.onRank()
     }
   }
 
@@ -178,6 +199,28 @@ class MenuScene extends Scene {
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(btn.text, 0, 0)
+      ctx.restore()
+    }
+
+    // 排行榜按钮（左上角圆形）
+    const rb = this.rankBtn
+    if (rb) {
+      const rbCX = rb.x + rb.width / 2
+      const rbCY = rb.y + rb.height / 2
+      const rbR = rb.width / 2
+
+      ctx.save()
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'
+      ctx.beginPath()
+      ctx.arc(rbCX, rbCY, rbR, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = '#ffffff'
+      const iconFont = Math.round(rb.width * 0.4)
+      ctx.font = iconFont + 'px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('🏆', rbCX, rbCY)
       ctx.restore()
     }
   }
