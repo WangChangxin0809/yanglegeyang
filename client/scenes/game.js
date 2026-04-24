@@ -120,7 +120,7 @@ class GameScene extends Scene {
     }
 
     // 道具区点击检测
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       const btn = cardRender.getPropPosition(i, { width: this.width, height: this.height })
       if (x >= btn.x && x <= btn.x + btn.size && y >= btn.y && y <= btn.y + btn.size) {
         props.use(i, { cards: this.cards, slots: this.slots })
