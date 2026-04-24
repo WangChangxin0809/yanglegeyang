@@ -28,9 +28,9 @@ const SLOT_FONT_SCALE  = 0.45   // 槽位文字字号 = 槽位尺寸 × 45%
 
 // 道具区
 const PROP_TOP         = 0.90   // 道具区顶部 = 屏幕高度 × 90%
-const PROP_SIZE_SCALE  = 0.2    // 道具按钮尺寸 = 屏幕宽度 × 20%
-const PROP_GAP_SCALE   = 0.08   // 道具按钮间距 = 屏幕宽度 × 8%
-const PROP_COUNT       = 3      // 道具数量（移出 / 撤回 / 洗牌）
+const PROP_SIZE_SCALE  = 0.16   // 道具按钮尺寸 = 屏幕宽度 × 16%
+const PROP_GAP_SCALE   = 0.05   // 道具按钮间距 = 屏幕宽度 × 5%
+const PROP_COUNT       = 4      // 道具数量（移出 / 撤回 / 洗牌 / 透视）
 const PROP_RADIUS      = 10     // 道具按钮圆角半径（px）
 const PROP_FONT_SCALE  = 0.28   // 道具按钮文字字号 = 按钮尺寸 × 28%
 const PROP_LABEL_Y     = 0.72   // 道具文字纵向位置 = 按钮顶部 + 按钮尺寸 × 72%
@@ -313,10 +313,10 @@ function getIconImg(icon) {
 
 // ==================== 道具区 ====================
 
-const PROP_LABELS = ['移出', '撤回', '洗牌']
+const PROP_LABELS = ['移出', '撤回', '洗牌', '透视']
 
 /**
- * 渲染道具区（3 个按钮水平居中）
+ * 渲染道具区（4 个按钮水平居中）
  * @param {CanvasRenderingContext2D} ctx
  * @param {Object} config - { width, height }
  */
@@ -363,7 +363,7 @@ function renderProps(ctx, config) {
 
 /**
  * 获取道具按钮的位置信息（用于点击检测）
- * @param {number} index   - 按钮索引 0/1/2
+ * @param {number} index   - 按钮索引 0/1/2/3
  * @param {Object} config  - { width, height }
  * @returns {{ x, y, size }}
  */

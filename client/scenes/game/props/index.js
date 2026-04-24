@@ -5,6 +5,7 @@
  *   0 - 移出（moveOut）
  *   1 - 撤回（undo）
  *   2 - 洗牌（shuffle）
+ *   3 - 透视（peek）
  *
  * 用法：
  *   const props = require('./props')
@@ -14,12 +15,13 @@
 const moveOut = require('./moveOut')
 const undo = require('./undo')
 const shuffle = require('./shuffle')
+const peek = require('./peek')
 
-const PROPS = [moveOut, undo, shuffle]
+const PROPS = [moveOut, undo, shuffle, peek]
 
 /**
  * 使用指定道具
- * @param {number} index - 道具索引 0/1/2
+ * @param {number} index - 道具索引 0/1/2/3
  * @param {Object} state - 游戏状态 { cards, slots, history, stash }
  * @returns {boolean} 是否成功使用
  */
