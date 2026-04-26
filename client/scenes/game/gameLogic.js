@@ -28,26 +28,13 @@ function handleTouch(x, y, cards) {
 }
 
 /**
- * 将选中的卡牌放入槽位（同类图标相邻插入）
+ * 将选中的卡牌放入槽位（按点击顺序追加到末尾）
  * @param {Object} card  - 被选中的卡牌
  * @param {Array}  slots - 当前槽位数组（会被原地修改）
  */
 function pickCard(card, slots) {
   card.removed = true
-
-  // 插入槽位：找到同类图标旁边插入
-  let insertIdx = slots.length
-  for (let i = 0; i < slots.length; i++) {
-    if (slots[i].icon === card.icon) {
-      insertIdx = i + 1
-      // 继续往后找连续的同类
-      while (insertIdx < slots.length && slots[insertIdx].icon === card.icon) {
-        insertIdx++
-      }
-      break
-    }
-  }
-  slots.splice(insertIdx, 0, { icon: card.icon })
+  slots.push({ icon: card.icon })
 }
 
 /**

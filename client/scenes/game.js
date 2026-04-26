@@ -190,17 +190,8 @@ class GameScene extends Scene {
     // 标记卡牌移除（棋盘上不再显示）
     card.removed = true
 
-    // 计算目标槽位索引（模拟 pickCard 的插入位置）
-    let insertIdx = this.slots.length
-    for (let i = 0; i < this.slots.length; i++) {
-      if (this.slots[i].icon === card.icon) {
-        insertIdx = i + 1
-        while (insertIdx < this.slots.length && this.slots[insertIdx].icon === card.icon) {
-          insertIdx++
-        }
-        break
-      }
-    }
+    // 目标槽位索引：按点击顺序追加到末尾（与 gameLogic.pickCard 一致）
+    const insertIdx = this.slots.length
 
     // 计算目标位置
     const target = cardRender.getSlotPosition(insertIdx, { width: this.width, height: this.height })

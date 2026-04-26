@@ -108,12 +108,14 @@ function generateCards(level, screenW, screenH) {
   shuffle(allIcons)
   const selectedIcons = allIcons.slice(0, cfg.iconTypes)
 
-  const triplets = Math.ceil(totalCards / 3 / cfg.iconTypes)
+  // ---- 随机分配图标组：每 3 张为一组，每组随机指定一种图标 ----
+  // 各图标在关卡中的出现次数完全随机，但满足三消可通关
+  const groupCount = Math.floor(totalCards / 3)
   const pool = []
-  for (const icon of selectedIcons) {
-    for (let j = 0; j < triplets * 3; j++) {
-      pool.push(icon)
-    }
+  for (let g = 0; g < groupCount; g++) {
+    const iconIdx = Math.floor(Math.random() * cfg.iconTypes)
+    const icon = selectedIcons[iconIdx]
+    pool.push(icon, icon, icon)
   }
   shuffle(pool)
 
