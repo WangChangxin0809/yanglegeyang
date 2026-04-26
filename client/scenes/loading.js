@@ -12,6 +12,7 @@ class LoadingScene extends Scene {
     this.loaded = false
     this.onComplete = null  // 加载完成回调
     this.bgImg = null
+    this.titleImg = null
   }
 
   onEnter() {
@@ -23,6 +24,11 @@ class LoadingScene extends Scene {
     const bg = wx.createImage()
     bg.src = 'images/loading/bgs/loading_bg01.png'
     bg.onload = () => { this.bgImg = bg }
+
+    // 加载标题图
+    const title = wx.createImage()
+    title.src = 'images/loading/titles/title.png'
+    title.onload = () => { this.titleImg = title }
 
     this._loadResources()
   }
@@ -80,7 +86,15 @@ class LoadingScene extends Scene {
     ctx.fillStyle = '#ffffff'
     ctx.font = 'bold 36px sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText('牛马日记', width / 2, height / 2 - 60)
+
+    // 标题：优先用图片，未加载好时临时显示文字兑底
+    if (this.titleImg) {
+      const titleW = width * 0.6
+      const titleH = titleW * (this.titleImg.height / this.titleImg.width)
+      ctx.drawImage(this.titleImg, (width - titleW) / 2, height / 2 - 60 - titleH, titleW, titleH)
+    } else {
+      ctx.fillText('牛马日记', width / 2, height / 2 - 60)
+    }
 
     const barWidth = width * 0.6
     const barHeight = 12

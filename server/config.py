@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = 168  # 7 天
 
+    # ── 阿里云 OSS ──
+    OSS_ACCESS_KEY_ID: str = ""
+    OSS_ACCESS_KEY_SECRET: str = ""
+    OSS_BUCKET_NAME: str = ""
+    OSS_ENDPOINT: str = "https://oss-cn-shanghai.aliyuncs.com/"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
