@@ -1,14 +1,19 @@
 /**
  * 第二关 - 重新设计
  *
- * 共 3 个区域：
- *   区域 1（左上角）：8 层单卡堆叠，offsetCol 0 → +0.70（向右错位）       8 张
- *   区域 2（右上角）：8 层单卡堆叠，offsetCol 0 → -0.70（镜像对称）        8 张
- *   区域 3（下方大片）：5 层交错堆叠 5×5 / 4×4 / 5×5 / 4×4 / 2×2   86 张
- *   区域 4（左下角）：6 层单卡堆叠，奇偶层 offsetCol 交错 0 / 0.5                6 张
- *   区域 5（右下角）：6 层单卡堆叠，奇偶层 offsetCol 交错 0 / -0.5（与区域 4 镜像）  6 张
+ * 共 7 个区域：
+ *   区域 1  （左上角） ：8 层单卡堆叠，offsetCol 0 → +0.70（向右错位）             8 张
+ *   区域 2  （右上角） ：8 层单卡堆叠，offsetCol 0 → -0.70（与区域 1 镜像）          8 张
+ *   区域 3.1（中左侧） ：8 层偶(2×2)/奇(1)交错堆叠，奇数层居中于下方 2×2          20 张
+ *   区域 3.2（中右侧） ：与区域 3.1 镜像对称（层结构一致，x 翻到右侧）               20 张
+ *   区域 3.3（中间 ） ：16 层环形阶梯（每层 1 张，沿 0/90/180/270°四个方位循环 4 圈）      16 张
+ *   区域 3.4（3.3 左侧）：8 层偶(1×2 竖向)/奇(1 居中)交错堆叠                12 张
+ *   区域 3.5（3.3 右侧）：与区域 3.4 镜像对称（层结构一致，x 翻到右侧）            12 张
+ *   区域 4  （左下角） ：6 层单卡堆叠，奇偶层 offsetCol 交错 0 / 0.5                 6 张
+ *   区域 5  （右下角） ：6 层单卡堆叠，奇偶层 offsetCol 交错 0 / -0.5（与区域 4 镜像） 6 张
+ *   区域 6  （顶层盖 ） ：layer 20 单层 6×6 大片覆盖 + layer 21 居中 3×3 再盖一层                45 张
  *
- * 总计 8 + 8 + 86 + 6 + 6 = 114 = 6 × 19 × 3 ✓
+ * 总计 8 + 8 + 20 + 20 + 16 + 12 + 12 + 6 + 6 + 45 = 153 张（153 ÷ 3 = 51，可三消 ✓）
  */
 
 module.exports = {
@@ -47,63 +52,249 @@ module.exports = {
       // 区域 2: 8 张
     },
 
-    // ==================== 区域 3：下方大片五层交错堆叠 ====================
+    // ==================== 区域 3.1：8 层偶(2×2)/奇(1)交错堆叠（左侧） ====================
     {
-      x: 0.12, y: 0.22,  // 横向居中，纵向从上区域下方开始
+      x: 0.12, y: 0.22,  // 中左侧：复用原区域 3 左上锚点
       layers: [
         {
-          // 第一层：5×5 = 25 张（底层基座）
+          // 第 1 层（偶）：2×2 = 4 张基座
           layer: 0, gapRatio: 0.1,
-          cards: [
-            { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 }, { col: 4, row: 0 },
-            { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 }, { col: 4, row: 1 },
-            { col: 0, row: 2 }, { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 }, { col: 4, row: 2 },
-            { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }, { col: 4, row: 3 },
-            { col: 0, row: 4 }, { col: 1, row: 4 }, { col: 2, row: 4 }, { col: 3, row: 4 }, { col: 4, row: 4 },
-          ]
-        },
-        {
-          // 第二层：4×4 = 16 张（砂砥交错，卡在底层 4 张交界处）
-          layer: 1, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
-          cards: [
-            { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 },
-            { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
-            { col: 0, row: 2 }, { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
-            { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 },
-          ]
-        },
-        {
-          // 第三层：5×5 = 25 张（回归对齐，完全遮罩第二层）
-          layer: 2, gapRatio: 0.1,
-          cards: [
-            { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 }, { col: 4, row: 0 },
-            { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 }, { col: 4, row: 1 },
-            { col: 0, row: 2 }, { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 }, { col: 4, row: 2 },
-            { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }, { col: 4, row: 3 },
-            { col: 0, row: 4 }, { col: 1, row: 4 }, { col: 2, row: 4 }, { col: 3, row: 4 }, { col: 4, row: 4 },
-          ]
-        },
-        {
-          // 第四层：4×4 = 16 张（再次砂砥交错）
-          layer: 3, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
-          cards: [
-            { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 },
-            { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 },
-            { col: 0, row: 2 }, { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 },
-            { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 },
-          ]
-        },
-        {
-          // 第五层：2×2 = 4 张（每张正好覆盖第四层 2×2 共 4 张，完全盖住第四层）
-          // gapRatio=1.2 让第五层 cellW = 2.2×size，恰好跨越第四层 2 格；offsetCol/Row=0.5 对齐第四层交界中心
-          layer: 4, gapRatio: 1.2, offsetCol: 0.5, offsetRow: 0.5,
           cards: [
             { col: 0, row: 0 }, { col: 1, row: 0 },
             { col: 0, row: 1 }, { col: 1, row: 1 },
           ]
         },
+        {
+          // 第 2 层（奇）：1 张，居中于下方 2×2 四张的几何中心
+          layer: 1, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 3 层（偶）：2×2 = 4 张
+          layer: 2, gapRatio: 0.1,
+          cards: [
+            { col: 0, row: 0 }, { col: 1, row: 0 },
+            { col: 0, row: 1 }, { col: 1, row: 1 },
+          ]
+        },
+        {
+          // 第 4 层（奇）：1 张居中
+          layer: 3, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 5 层（偶）：2×2 = 4 张
+          layer: 4, gapRatio: 0.1,
+          cards: [
+            { col: 0, row: 0 }, { col: 1, row: 0 },
+            { col: 0, row: 1 }, { col: 1, row: 1 },
+          ]
+        },
+        {
+          // 第 6 层（奇）：1 张居中
+          layer: 5, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 7 层（偶）：2×2 = 4 张
+          layer: 6, gapRatio: 0.1,
+          cards: [
+            { col: 0, row: 0 }, { col: 1, row: 0 },
+            { col: 0, row: 1 }, { col: 1, row: 1 },
+          ]
+        },
+        {
+          // 第 8 层（奇）：1 张居中
+          layer: 7, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
       ]
-      // 区域 3: 25 + 16 + 25 + 16 + 4 = 86 张
+      // 区域 3.1: 4 + 1 + 4 + 1 + 4 + 1 + 4 + 1 = 20 张
+    },
+
+    // ==================== 区域 3.2：与 3.1 镜像对称（右侧） ====================
+    {
+      x: 0.54, y: 0.22,  // 中右侧：x 采用与区域 1↔2 相同的镜像约定（0.86 - 0.12 = 0.74），y 保持一致
+      layers: [
+        {
+          // 第 1 层（偶）：2×2 = 4 张基座
+          layer: 0, gapRatio: 0.1,
+          cards: [
+            { col: 0, row: 0 }, { col: 1, row: 0 },
+            { col: 0, row: 1 }, { col: 1, row: 1 },
+          ]
+        },
+        {
+          // 第 2 层（奇）：1 张，居中于下方 2×2 四张的几何中心
+          layer: 1, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 3 层（偶）：2×2 = 4 张
+          layer: 2, gapRatio: 0.1,
+          cards: [
+            { col: 0, row: 0 }, { col: 1, row: 0 },
+            { col: 0, row: 1 }, { col: 1, row: 1 },
+          ]
+        },
+        {
+          // 第 4 层（奇）：1 张居中
+          layer: 3, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 5 层（偶）：2×2 = 4 张
+          layer: 4, gapRatio: 0.1,
+          cards: [
+            { col: 0, row: 0 }, { col: 1, row: 0 },
+            { col: 0, row: 1 }, { col: 1, row: 1 },
+          ]
+        },
+        {
+          // 第 6 层（奇）：1 张居中
+          layer: 5, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 7 层（偶）：2×2 = 4 张
+          layer: 6, gapRatio: 0.1,
+          cards: [
+            { col: 0, row: 0 }, { col: 1, row: 0 },
+            { col: 0, row: 1 }, { col: 1, row: 1 },
+          ]
+        },
+        {
+          // 第 8 层（奇）：1 张居中
+          layer: 7, gapRatio: 0.1, offsetCol: 0.5, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+      ]
+      // 区域 3.2: 4 + 1 + 4 + 1 + 4 + 1 + 4 + 1 = 20 张（与 3.1 结构完全一致）
+    },
+
+    // ==================== 区域 3.3：16 层环形阶梯（每层 1 张沿四方位循环） ====================
+    // 原理：每层单卡 {col:0,row:0}，通过 offsetCol/offsetRow 将卡片中心放在半径 R=0.5 cell 的圆周上，
+    // 仅使用 0°/90°/180°/270° 四个正方位，16 层顺时针循环 4 圈 → 四个方位各堆叠 4 张，
+    // 视觉上成“十字型四层阶梯”。
+    {
+      x: 0.345, y: 0.52,  // 画面中部偏下
+      layers: [
+        { layer:  0, gapRatio: 0.1, offsetCol: 1.000, offsetRow: 0.500, cards: [{ col: 0, row: 0 }] }, //   0° 东（第 1 圈）
+        { layer:  1, gapRatio: 0.1, offsetCol: 0.500, offsetRow: 1.000, cards: [{ col: 0, row: 0 }] }, //  90° 南
+        { layer:  2, gapRatio: 0.1, offsetCol: 0.000, offsetRow: 0.500, cards: [{ col: 0, row: 0 }] }, // 180° 西
+        { layer:  3, gapRatio: 0.1, offsetCol: 0.500, offsetRow: 0.000, cards: [{ col: 0, row: 0 }] }, // 270° 北
+        { layer:  4, gapRatio: 0.1, offsetCol: 1.000, offsetRow: 0.500, cards: [{ col: 0, row: 0 }] }, //   0° 东（第 2 圈）
+        { layer:  5, gapRatio: 0.1, offsetCol: 0.500, offsetRow: 1.000, cards: [{ col: 0, row: 0 }] }, //  90° 南
+        { layer:  6, gapRatio: 0.1, offsetCol: 0.000, offsetRow: 0.500, cards: [{ col: 0, row: 0 }] }, // 180° 西
+        { layer:  7, gapRatio: 0.1, offsetCol: 0.500, offsetRow: 0.000, cards: [{ col: 0, row: 0 }] }, // 270° 北
+        { layer:  8, gapRatio: 0.1, offsetCol: 1.000, offsetRow: 0.500, cards: [{ col: 0, row: 0 }] }, //   0° 东（第 3 圈）
+        { layer:  9, gapRatio: 0.1, offsetCol: 0.500, offsetRow: 1.000, cards: [{ col: 0, row: 0 }] }, //  90° 南
+        { layer: 10, gapRatio: 0.1, offsetCol: 0.000, offsetRow: 0.500, cards: [{ col: 0, row: 0 }] }, // 180° 西
+        { layer: 11, gapRatio: 0.1, offsetCol: 0.500, offsetRow: 0.000, cards: [{ col: 0, row: 0 }] }, // 270° 北
+        { layer: 12, gapRatio: 0.1, offsetCol: 1.000, offsetRow: 0.500, cards: [{ col: 0, row: 0 }] }, //   0° 东（第 4 圈）
+        { layer: 13, gapRatio: 0.1, offsetCol: 0.500, offsetRow: 1.000, cards: [{ col: 0, row: 0 }] }, //  90° 南
+        { layer: 14, gapRatio: 0.1, offsetCol: 0.000, offsetRow: 0.500, cards: [{ col: 0, row: 0 }] }, // 180° 西
+        { layer: 15, gapRatio: 0.1, offsetCol: 0.500, offsetRow: 0.000, cards: [{ col: 0, row: 0 }] }, // 270° 北
+      ]
+      // 区域 3.3: 16 张（四个方位 × 4 圈）
+    },
+
+    // ==================== 区域 3.4：3.3 左侧竖向堆叠（偶 1×2 / 奇 1 居中） ====================
+    // 偶数层：2 张竖向排列（上下）；奇数层：1 张，offsetRow=0.5 居中于两张中心。共 8 层。
+    {
+      x: 0.08, y: 0.52,  // 位于 3.3 左侧（x=0.35 左边），y 与 3.3 对齐
+      layers: [
+        {
+          // 第 1 层（偶）：竖向 2 张基座
+          layer: 0, gapRatio: 0.1,
+          cards: [{ col: 0, row: 0 }, { col: 0, row: 1 }]
+        },
+        {
+          // 第 2 层（奇）：1 张，居中于下方两张的几何中心
+          layer: 1, gapRatio: 0.1, offsetCol: 0, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 3 层（偶）：竖向 2 张
+          layer: 2, gapRatio: 0.1,
+          cards: [{ col: 0, row: 0 }, { col: 0, row: 1 }]
+        },
+        {
+          // 第 4 层（奇）：1 张居中
+          layer: 3, gapRatio: 0.1, offsetCol: 0, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 5 层（偶）：竖向 2 张
+          layer: 4, gapRatio: 0.1,
+          cards: [{ col: 0, row: 0 }, { col: 0, row: 1 }]
+        },
+        {
+          // 第 6 层（奇）：1 张居中
+          layer: 5, gapRatio: 0.1, offsetCol: 0, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 7 层（偶）：竖向 2 张
+          layer: 6, gapRatio: 0.1,
+          cards: [{ col: 0, row: 0 }, { col: 0, row: 1 }]
+        },
+        {
+          // 第 8 层（奇）：1 张居中
+          layer: 7, gapRatio: 0.1, offsetCol: 0, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+      ]
+      // 区域 3.4: 2 + 1 + 2 + 1 + 2 + 1 + 2 + 1 = 12 张
+    },
+
+    // ==================== 区域 3.5：与 3.4 镜像对称（3.3 右侧） ====================
+    // 层结构与 3.4 完全一致（竖向对称图形本身左右等价），仅 x 翻到右侧。
+    {
+      x: 0.78, y: 0.52,  // 位于 3.3 右侧，x 采用与区域 1↔2 相同的镜像约定（0.86 - 0.08 = 0.78）
+      layers: [
+        {
+          // 第 1 层（偶）：竖向 2 张基座
+          layer: 0, gapRatio: 0.1,
+          cards: [{ col: 0, row: 0 }, { col: 0, row: 1 }]
+        },
+        {
+          // 第 2 层（奇）：1 张居中
+          layer: 1, gapRatio: 0.1, offsetCol: 0, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 3 层（偶）：竖向 2 张
+          layer: 2, gapRatio: 0.1,
+          cards: [{ col: 0, row: 0 }, { col: 0, row: 1 }]
+        },
+        {
+          // 第 4 层（奇）：1 张居中
+          layer: 3, gapRatio: 0.1, offsetCol: 0, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 5 层（偶）：竖向 2 张
+          layer: 4, gapRatio: 0.1,
+          cards: [{ col: 0, row: 0 }, { col: 0, row: 1 }]
+        },
+        {
+          // 第 6 层（奇）：1 张居中
+          layer: 5, gapRatio: 0.1, offsetCol: 0, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+        {
+          // 第 7 层（偶）：竖向 2 张
+          layer: 6, gapRatio: 0.1,
+          cards: [{ col: 0, row: 0 }, { col: 0, row: 1 }]
+        },
+        {
+          // 第 8 层（奇）：1 张居中
+          layer: 7, gapRatio: 0.1, offsetCol: 0, offsetRow: 0.5,
+          cards: [{ col: 0, row: 0 }]
+        },
+      ]
+      // 区域 3.5: 2 + 1 + 2 + 1 + 2 + 1 + 2 + 1 = 12 张（与 3.4 结构完全一致）
     },
 
     // ==================== 区域 4：左下角 6 层单卡奇偶交错堆叠 ====================
@@ -132,7 +323,39 @@ module.exports = {
         { layer: 5, gapRatio: 0.1, offsetCol: -0.5, cards: [{ col: 0, row: 0 }] },  // 第 6 层（偶）
       ]
       // 区域 5: 6 张
+    },
+
+    // ==================== 区域 6：顶层盖（layer 20 单层 6×6） ====================
+    // 目的：在所有 3.x 区域上方放一片 6×6 的顶层卡，将 3.x 顶端的少量卡统一盖住，
+    // 视觉上形成一个大的统一板块；必须先清空这 36 张才能触及下方 3.x 区域。
+    // 层级 layer=20，高于 3.3 最高层（layer 15），确保位于所有 3.x 区域之上。
+    {
+      x: 0.06, y: 0.17,  // 大致居中覆盖中央 3.x 区域，实际视觉中心可再微调
+      layers: [
+        {
+          // 单层 6×6 = 36 张，layer=20 起步
+          layer: 20, gapRatio: 0.1,
+          cards: [
+            { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 }, { col: 4, row: 0 }, { col: 5, row: 0 },
+            { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 }, { col: 3, row: 1 }, { col: 4, row: 1 }, { col: 5, row: 1 },
+            { col: 0, row: 2 }, { col: 1, row: 2 }, { col: 2, row: 2 }, { col: 3, row: 2 }, { col: 4, row: 2 }, { col: 5, row: 2 },
+            { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 2, row: 3 }, { col: 3, row: 3 }, { col: 4, row: 3 }, { col: 5, row: 3 },
+            { col: 0, row: 4 }, { col: 1, row: 4 }, { col: 2, row: 4 }, { col: 3, row: 4 }, { col: 4, row: 4 }, { col: 5, row: 4 },
+            { col: 0, row: 5 }, { col: 1, row: 5 }, { col: 2, row: 5 }, { col: 3, row: 5 }, { col: 4, row: 5 }, { col: 5, row: 5 },
+          ]
+        },
+        {
+          // 第 2 层：3×3 = 9 张，layer=21，相对 6×6 居中（offset=(6-3)/2=1.5 cell）
+          layer: 21, gapRatio: 0.1, offsetCol: 1.5, offsetRow: 1.5,
+          cards: [
+            { col: -1, row: -1 }, { col: 1, row: -1 }, { col: 3, row: -1 },
+            { col: -1, row: 1 }, { col: 1, row: 1 }, { col: 3, row: 1 },
+            { col: -1, row: 3 }, { col: 1, row: 3 }, { col: 3, row: 3 },
+          ]
+        },
+      ]
+      // 区域 6: 6×6 + 3×3 = 36 + 9 = 45 张
     }
   ]
-  // 总计 8 + 8 + 86 + 6 + 6 = 114 = 6 × 19 × 3 ✓
+  // 总计 8 + 8 + 20 + 20 + 16 + 12 + 12 + 6 + 6 + 45 = 153 张（153 ÷ 3 = 51，可三消 ✓）
 }
