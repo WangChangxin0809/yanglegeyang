@@ -4,6 +4,7 @@ const cardRender = require('./game/cardRender')
 const gameLogic = require('./game/gameLogic')
 const props = require('./game/props/index')
 const { post } = require('../utils/request')
+const { getImageUrl } = require('../utils/assets')
 
 /**
  * 游戏核心场景
@@ -71,7 +72,7 @@ class GameScene extends Scene {
 
     // 加载背景图
     const bg = wx.createImage()
-    bg.src = 'images/game/bgs/game_bg01.png'
+    bg.src = getImageUrl('game/bgs/game_bg01.png')
     bg.onload = () => { this.bgImg = bg }
 
     // 预加载卡牌图片

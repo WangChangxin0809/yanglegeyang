@@ -4,6 +4,7 @@
  */
 
 const LEVELS = require('./levels')
+const { getImageUrl } = require('../../utils/assets')
 
 // ==================== 屏幕比例参数（统一管理） ====================
 // 卡牌可用区域边界
@@ -51,7 +52,7 @@ const ICON_IMGS = {}  // { '1': Image, '2': Image, ... }
 function preloadImages() {
   for (let i = 1; i <= ICON_COUNT; i++) {
     const img = wx.createImage()
-    img.src = 'images/game/cards/animals/' + i + '.png'
+    img.src = getImageUrl('game/cards/animals/' + i + '.png')
     img.onload = () => { ICON_IMGS[String(i)] = img }
   }
 }

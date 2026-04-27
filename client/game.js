@@ -11,14 +11,20 @@ const canvas = wx.createCanvas()
 const ctx = canvas.getContext('2d')
 const windowInfo = wx.getWindowInfo()
 const deviceInfo = wx.getDeviceInfo()
+const dpr = windowInfo.pixelRatio || deviceInfo.pixelRatio || 1
+
+// 高清屏适配：canvas 实际帧缓冲按物理像素（screenWidth * DPR），
+// 代码绘制时通过 ctx.scale(DPR) 继续用逻辑像素坐标，场景代码 0 修改。
+canvas.width = windowInfo.screenWidth * dpr
+canvas.height = windowInfo.screenHeight * dpr
+ctx.scale(dpr, dpr)
 
 // 存入全局
 GameGlobal.canvas = canvas
 GameGlobal.ctx = ctx
 GameGlobal.screenWidth = windowInfo.screenWidth
 GameGlobal.screenHeight = windowInfo.screenHeight
-GameGlobal.pixelRatio = windowInfo.pixelRatio || deviceInfo.pixelRatio
-
+GameGlobal.pixelRatio = dpr
 // ==================== 场景管理 ====================
 let currentScene = null
 
