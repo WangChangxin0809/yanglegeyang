@@ -1,4 +1,5 @@
 const Scene = require('./base')
+const { getImageUrl } = require('../utils/assets')
 
 /**
  * 主菜单场景
@@ -20,7 +21,7 @@ class MenuScene extends Scene {
   onEnter() {
     // 加载标题图片
     const titleImg = wx.createImage()
-    titleImg.src = 'images/menu/titles/title.png'
+    titleImg.src = getImageUrl('menu/titles/title.png')
     titleImg.onload = () => { this.titleImg = titleImg }
 
     const btnWidth = this.width * 0.5
@@ -47,12 +48,12 @@ class MenuScene extends Scene {
 
     // 加载背景图
     const bg = wx.createImage()
-    bg.src = 'images/menu/bgs/menu_bg01.png'
+    bg.src = getImageUrl('menu/bgs/menu_bg01.png')
     bg.onload = () => { this.bgImg = bg }
 
     // 加载按钮图片
     const img = wx.createImage()
-    img.src = 'images/menu/buttons/button_start.png'
+    img.src = getImageUrl('menu/buttons/button_start.png')
     img.onload = () => {
       this.startImg = img
       const ratio = img.width / img.height
@@ -66,11 +67,11 @@ class MenuScene extends Scene {
 
     // 加载按钮装饰动物图片
     const animalLeft = wx.createImage()
-    animalLeft.src = 'images/menu/elements/animal_left.png'
+    animalLeft.src = getImageUrl('menu/elements/animal_left.png')
     animalLeft.onload = () => { this.animalLeftImg = animalLeft }
 
     const animalRight = wx.createImage()
-    animalRight.src = 'images/menu/elements/animal_right.png'
+    animalRight.src = getImageUrl('menu/elements/animal_right.png')
     animalRight.onload = () => { this.animalRightImg = animalRight }
   }
 

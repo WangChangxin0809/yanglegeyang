@@ -16,7 +16,16 @@
   "compileType": "game",
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "images"
+      },
+      {
+        "type": "file",
+        "value": "oss_manifest.json"
+      }
+    ],
     "include": []
   },
   "isGameTourist": false,
