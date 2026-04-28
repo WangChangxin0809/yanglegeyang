@@ -5,6 +5,7 @@ const MenuScene = require('./scenes/menu')
 const GameScene = require('./scenes/game')
 const RankScene = require('./scenes/rank')
 const { login } = require('./utils/request')
+const { pauseBgm, resumeBgm } = require('./utils/audio')
 
 // 初始化画布
 const canvas = wx.createCanvas()
@@ -102,3 +103,7 @@ function gameLoop() {
 // 启动
 switchScene(loadingScene)
 requestAnimationFrame(gameLoop)
+
+// 前后台切换：后台暂停 BGM，回前台恢复
+wx.onShow(() => { resumeBgm() })
+wx.onHide(() => { pauseBgm() })

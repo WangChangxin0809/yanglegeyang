@@ -1,5 +1,6 @@
 const Scene = require('./base')
 const { getImageUrl } = require('../utils/assets')
+const { playBgm } = require('../utils/audio')
 
 /**
  * 主菜单场景
@@ -19,6 +20,9 @@ class MenuScene extends Scene {
   }
 
   onEnter() {
+    // 菜单 BGM（后续要加多首换 playBgmGroup('home')）
+    playBgm('bg_home.mp3')
+
     // 加载标题图片
     const titleImg = wx.createImage()
     titleImg.src = getImageUrl('menu/titles/title.png')

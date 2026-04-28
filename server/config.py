@@ -8,8 +8,12 @@ class Settings(BaseSettings):
     """全局配置项，通过环境变量或 .env 文件注入"""
 
     # ── 应用 ──
-    APP_NAME: str = "yanglegeyang-server"
+    APP_NAME: str = "hustle-diary-server"
     DEBUG: bool = True
+
+    # ── 服务监听 ──
+    SERVER_HOST: str = "0.0.0.0"
+    SERVER_PORT: int = 8089
 
     # ── PostgreSQL ──
     PG_HOST: str = "localhost"

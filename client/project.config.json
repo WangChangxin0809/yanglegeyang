@@ -22,6 +22,10 @@
         "value": "images"
       },
       {
+        "type": "folder",
+        "value": "audio"
+      },
+      {
         "type": "file",
         "value": "oss_manifest.json"
       }

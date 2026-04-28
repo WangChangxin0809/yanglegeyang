@@ -8,3 +8,8 @@ __pycache__/
 .venv/
 .env
 uv.lock
+
+# 服务器运维脚本（含密码）
+scripts/deploy.py
+scripts/remote_check.py
+scripts/disk_check.py

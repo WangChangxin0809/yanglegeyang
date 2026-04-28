@@ -48,12 +48,21 @@ const PROP_LABEL_Y     = 0.72   // 道具文字纵向位置 = 按钮顶部 + 按
 const ICON_COUNT = 18
 const ICON_IMGS = {}  // { '1': Image, '2': Image, ... }
 
-/** 预加载所有卡牌图片 */
+// 道具图（4 个，顺序与 PROP_LABELS 一致）
+const PROP_IMG_NAMES = ['moveOut', 'undo', 'shuffle', 'peek']
+const PROP_IMGS = []
+
+/** 预加载所有卡牌图片 + 道具图片 */
 function preloadImages() {
   for (let i = 1; i <= ICON_COUNT; i++) {
     const img = wx.createImage()
     img.src = getImageUrl('game/cards/animals/' + i + '.png')
     img.onload = () => { ICON_IMGS[String(i)] = img }
+  }
+  for (let i = 0; i < PROP_IMG_NAMES.length; i++) {
+    const img = wx.createImage()
+    img.src = getImageUrl('game/props/' + PROP_IMG_NAMES[i] + '.png')
+    img.onload = ((idx) => () => { PROP_IMGS[idx] = img })(i)
   }
 }
 
@@ -361,8 +370,9 @@ const PROP_LABELS = ['移出', '撤回', '洗牌', '透视']
  * 渲染道具区（4 个按钮水平居中）
  * @param {CanvasRenderingContext2D} ctx
  * @param {Object} config - { width, height }
+ * @param {number[]} [counts] - 可选，各道具剩余次数；传入后会在右上角绘制角标，0 次时整按钮罩灰
  */
-function renderProps(ctx, config) {
+function renderProps(ctx, config, counts) {
   const { width, height } = config
   const btnSize = Math.round(width * PROP_SIZE_SCALE)
   const btnGap = Math.round(width * PROP_GAP_SCALE)
@@ -377,29 +387,62 @@ function renderProps(ctx, config) {
   for (let i = 0; i < PROP_COUNT; i++) {
     const bx = startX + i * (btnSize + btnGap)
     const by = topY
+    const cnt = counts ? (counts[i] == null ? -1 : counts[i]) : -1
+    const depleted = cnt === 0
+    const img = PROP_IMGS[i]
 
-    // 按钮背景（圆角矩形）
-    ctx.fillStyle = 'rgba(50,130,220,0.85)'
-    ctx.beginPath()
-    ctx.moveTo(bx + radius, by)
-    ctx.arcTo(bx + btnSize, by, bx + btnSize, by + btnSize, radius)
-    ctx.arcTo(bx + btnSize, by + btnSize, bx, by + btnSize, radius)
-    ctx.arcTo(bx, by + btnSize, bx, by, radius)
-    ctx.arcTo(bx, by, bx + btnSize, by, radius)
-    ctx.closePath()
-    ctx.fill()
+    if (img) {
+      // 有图：直接绘制图片（用完时降透明度作灰效）
+      if (depleted) {
+        ctx.save()
+        ctx.globalAlpha = 0.4
+        ctx.drawImage(img, bx, by, btnSize, btnSize)
+        ctx.restore()
+      } else {
+        ctx.drawImage(img, bx, by, btnSize, btnSize)
+      }
+    } else {
+      // 图未加载完毕：回落到原来的圆角矩形 + 文字标签
+      ctx.fillStyle = depleted ? 'rgba(120,120,120,0.75)' : 'rgba(50,130,220,0.85)'
+      ctx.beginPath()
+      ctx.moveTo(bx + radius, by)
+      ctx.arcTo(bx + btnSize, by, bx + btnSize, by + btnSize, radius)
+      ctx.arcTo(bx + btnSize, by + btnSize, bx, by + btnSize, radius)
+      ctx.arcTo(bx, by + btnSize, bx, by, radius)
+      ctx.arcTo(bx, by, bx + btnSize, by, radius)
+      ctx.closePath()
+      ctx.fill()
 
-    // 按钮边框
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)'
-    ctx.lineWidth = 1.5
-    ctx.stroke()
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+      ctx.lineWidth = 1.5
+      ctx.stroke()
 
-    // 文字标签
-    ctx.fillStyle = '#ffffff'
-    ctx.font = 'bold ' + fontSize + 'px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(PROP_LABELS[i], bx + btnSize / 2, by + btnSize * PROP_LABEL_Y)
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold ' + fontSize + 'px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(PROP_LABELS[i], bx + btnSize / 2, by + btnSize * PROP_LABEL_Y)
+    }
+
+    // 右上角次数角标（与图片/回落按钮兼容）
+    if (cnt >= 0) {
+      const badgeR = Math.round(btnSize * 0.18)
+      const bcx = bx + btnSize - badgeR * 0.4
+      const bcy = by + badgeR * 0.4
+      ctx.beginPath()
+      ctx.arc(bcx, bcy, badgeR, 0, Math.PI * 2)
+      ctx.fillStyle = depleted ? '#888888' : '#ff5252'
+      ctx.fill()
+      ctx.strokeStyle = '#ffffff'
+      ctx.lineWidth = 1.2
+      ctx.stroke()
+
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold ' + Math.round(badgeR * 1.3) + 'px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(String(cnt), bcx, bcy + 1)
+    }
   }
 }
 

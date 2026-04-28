@@ -1,4 +1,4 @@
-"""羊了个羊 — 后端服务入口"""
+"""牛马日记 — 后端服务入口"""
 
 import logging
 from contextlib import asynccontextmanager
@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="羊了个羊 - 后端服务",
+    title="牛马日记 - 后端服务",
     version="0.1.0",
     lifespan=lifespan,
 )
