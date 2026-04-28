@@ -1,7 +1,7 @@
 [project]
 name = "yanglegeyang-server"
 version = "0.1.0"
-description = "羊了个羊 - 后端服务"
+description = "牛马日记 - 后端服务"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

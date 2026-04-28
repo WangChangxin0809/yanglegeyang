@@ -5,6 +5,7 @@ const gameLogic = require('./game/gameLogic')
 const props = require('./game/props/index')
 const { post } = require('../utils/request')
 const { getImageUrl } = require('../utils/assets')
+const { playBgm, playBgmGroup, playSfx } = require('../utils/audio')
 
 /**
  * 游戏核心场景
@@ -54,6 +55,8 @@ class GameScene extends Scene {
 
   /** 从菜单进入时重置关卡 */
   onEnter() {
+    // 游戏 BGM：从 bg_game 分组随机抽一首
+    playBgmGroup('game')
     this.level = 1
     this._startLevel()
   }
@@ -69,6 +72,9 @@ class GameScene extends Scene {
     this.stash = []
     this.recordSubmitted = false
     this.levelStartTime = Date.now()
+
+    // 重置道具次数
+    props.init()
 
     // 加载背景图
     const bg = wx.createImage()
@@ -149,6 +155,8 @@ class GameScene extends Scene {
           this._spawnMatchFx(oldSlots, this.slots)
           this.history = []
         }
+        // 输赢判定（与 update() 中一致）
+        this._checkAndPlayResult()
         return;
       }
     }
@@ -187,6 +195,9 @@ class GameScene extends Scene {
     // 点击检测
     const card = gameLogic.handleTouch(x, y, this.cards)
     if (!card) return
+
+    // 卡牌点击音效
+    playSfx('click')
 
     // 标记卡牌移除（棋盘上不再显示）
     card.removed = true
@@ -238,9 +249,7 @@ class GameScene extends Scene {
         }
 
         // 输赢判定
-        const result = gameLogic.checkResult(this.cards, this.slots, this.maxSlots, this.stash)
-        this.gameOver = result.gameOver
-        this.gameWin = result.gameWin
+        this._checkAndPlayResult()
 
         // 通关时上报记录
         if (this.gameWin && !this.recordSubmitted) {
@@ -342,8 +351,24 @@ class GameScene extends Scene {
     console.log('[透视] 激活，透视 ' + peekCards.length + ' 张顶层卡牌')
   }
 
+  /** 输赢判定 + 音效（胜利优先，首次进入才响一次） */
+  _checkAndPlayResult() {
+    const wasOver = this.gameOver || this.gameWin
+    const result = gameLogic.checkResult(this.cards, this.slots, this.maxSlots, this.stash)
+    this.gameOver = result.gameOver
+    this.gameWin = result.gameWin
+    if (!wasOver && this.gameWin) {
+      playSfx('success')
+    } else if (!wasOver && this.gameOver) {
+      playSfx('defeat')
+    }
+  }
+
   /** 生成消除特效和粒子 */
   _spawnMatchFx(oldSlots, newSlots) {
+    // 三消音效
+    playSfx('merge')
+
     const removedMap = {}
     for (const s of oldSlots) removedMap[s.icon] = (removedMap[s.icon] || 0) + 1
     for (const s of newSlots) removedMap[s.icon] = (removedMap[s.icon] || 0) - 1
@@ -443,7 +468,8 @@ class GameScene extends Scene {
     cardRender.renderStash(ctx, this.stash, { width, height })
 
     // 绘制道具区
-    cardRender.renderProps(ctx, { width, height })
+    const propCounts = [props.getCount(0), props.getCount(1), props.getCount(2), props.getCount(3)]
+    cardRender.renderProps(ctx, { width, height }, propCounts)
 
     // 绘制飞行动画中的卡牌
     for (const anim of this.anims) {
