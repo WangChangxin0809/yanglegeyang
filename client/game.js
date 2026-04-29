@@ -1,10 +1,11 @@
 require('./global')
 
 const LoadingScene = require('./scenes/loading')
+const AuthScene = require('./scenes/auth')
 const MenuScene = require('./scenes/menu')
 const GameScene = require('./scenes/game')
 const RankScene = require('./scenes/rank')
-const { login } = require('./utils/request')
+const { restoreAuth } = require('./utils/request')
 const { pauseBgm, resumeBgm } = require('./utils/audio')
 
 // 初始化画布
@@ -37,26 +38,30 @@ function switchScene(scene) {
 
 // 创建场景实例
 const loadingScene = new LoadingScene()
+const authScene = new AuthScene()
 const menuScene = new MenuScene()
 const gameScene = new GameScene()
 const rankScene = new RankScene()
 
+// 启动时先尝试从本地 storage 恢复 token/userInfo
+restoreAuth()
+
+// 判断是否已授权（token + 非空昵称/头像）
+function isAuthorized() {
+  const info = GameGlobal.userInfo
+  return !!(GameGlobal.token && info && info.nickname && info.avatar_url)
+}
+
 // 场景跳转链接
 loadingScene.onComplete = () => {
-  // 加载完成后自动登录
-  login()
-    .then((data) => {
-      GameGlobal.token = data.token
-      GameGlobal.userInfo = { id: data.user_id, nickname: data.nickname, avatar_url: data.avatar_url }
-      console.log('[login] 登录成功，用户:', data.nickname || data.user_id)
-    })
-    .catch((err) => {
-      console.warn('[login] 登录失败，离线模式运行', err)
-    })
-    .finally(() => {
-      switchScene(menuScene)
-    })
+  // 本地已授权 → 直接进菜单；否则 → 强制进入授权场景
+  if (isAuthorized()) {
+    switchScene(menuScene)
+  } else {
+    switchScene(authScene)
+  }
 }
+authScene.onComplete = () => switchScene(menuScene)
 menuScene.onStartGame = () => switchScene(gameScene)
 menuScene.onRank = () => switchScene(rankScene)
 gameScene.onBack = () => switchScene(menuScene)

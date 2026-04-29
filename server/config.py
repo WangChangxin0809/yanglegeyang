@@ -15,30 +15,19 @@ class Settings(BaseSettings):
     SERVER_HOST: str = "0.0.0.0"
     SERVER_PORT: int = 8089
 
-    # ── PostgreSQL ──
-    PG_HOST: str = "localhost"
-    PG_PORT: int = 5432
-    PG_USER: str = "postgres"
-    PG_PASSWORD: str = "postgres"
-    PG_DATABASE: str = "yanglegeyang"
+    # ── MySQL（与金毛大战波斯猫共用一个库，本项目表统一用 hd_ 前缀）──
+    MYSQL_HOST: str = "localhost"
+    MYSQL_PORT: int = 3306
+    MYSQL_USER: str = "root"
+    MYSQL_PASSWORD: str = ""
+    MYSQL_DATABASE: str = "golden_vs_persian"
 
     @property
     def DATABASE_URL(self) -> str:
         return (
-            f"postgresql+asyncpg://{self.PG_USER}:{self.PG_PASSWORD}"
-            f"@{self.PG_HOST}:{self.PG_PORT}/{self.PG_DATABASE}"
+            f"mysql+asyncmy://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}"
+            f"@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}?charset=utf8mb4"
         )
-
-    # ── Redis ──
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
-    REDIS_PASSWORD: str = ""
-
-    @property
-    def REDIS_URL(self) -> str:
-        password_part = f":{self.REDIS_PASSWORD}@" if self.REDIS_PASSWORD else ""
-        return f"redis://{password_part}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
     # ── 微信小程序 ──
     WX_APP_ID: str = ""
@@ -55,7 +44,12 @@ class Settings(BaseSettings):
     OSS_BUCKET_NAME: str = ""
     OSS_ENDPOINT: str = "https://oss-cn-shanghai.aliyuncs.com/"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    # extra="ignore" — 允许 .env 中存在未声明的运维变量（如 SSH_*、MYSQL_ROOT_*）
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
 
 @lru_cache

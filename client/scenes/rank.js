@@ -30,6 +30,8 @@ class RankScene extends Scene {
     this.lastTouchY = 0
     this.isDragging = false
     this.onBack = null
+    // 头像图片缓存：avatar_url -> Image
+    this.avatarCache = {}
   }
 
   onEnter() {
@@ -48,12 +50,26 @@ class RankScene extends Scene {
       .then((data) => {
         this.rankData = data || []
         this.loading = false
+        this._preloadAvatars()
         console.log('[rank] 获取排行榜, 关卡:', this.currentLevel, '条数:', this.rankData.length)
       })
       .catch((err) => {
         console.warn('[rank] 获取排行榜失败:', err)
         this.loading = false
       })
+  }
+
+  /** 预加载所有排名的头像图片 */
+  _preloadAvatars() {
+    this.rankData.forEach((item) => {
+      const url = item.avatar_url
+      if (!url || this.avatarCache[url]) return
+      const img = wx.createImage()
+      this.avatarCache[url] = img  // 占位，避免重复加载
+      img.onload = () => {}
+      img.onerror = () => { this.avatarCache[url] = null }
+      img.src = url
+    })
   }
 
   onTouchStart(x, y) {
@@ -245,20 +261,32 @@ class RankScene extends Scene {
         ctx.textBaseline = 'middle'
         ctx.fillText(item.rank, rankCx, rowCy)
 
-        // 头像占位圆
+        // 头像：有 avatar_url 且图片已加载完 → 用真实头像；否则回退到昵称首字占位
         const avatarX = padX + rankFont * 1.5
-        const avatarY = rowCy - avatarS / 2
-        ctx.fillStyle = '#4ecca3'
-        ctx.beginPath()
-        ctx.arc(avatarX + avatarS / 2, rowCy, avatarS / 2, 0, Math.PI * 2)
-        ctx.fill()
-        // 头像首字
-        ctx.fillStyle = '#ffffff'
-        ctx.font = 'bold ' + Math.round(avatarS * 0.5) + 'px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        const initial = (item.nickname || '?')[0]
-        ctx.fillText(initial, avatarX + avatarS / 2, rowCy)
+        const avatarCX = avatarX + avatarS / 2
+        const cachedImg = item.avatar_url ? this.avatarCache[item.avatar_url] : null
+        const imgReady = cachedImg && cachedImg.width > 0
+
+        if (imgReady) {
+          ctx.save()
+          ctx.beginPath()
+          ctx.arc(avatarCX, rowCy, avatarS / 2, 0, Math.PI * 2)
+          ctx.clip()
+          ctx.drawImage(cachedImg, avatarX, rowCy - avatarS / 2, avatarS, avatarS)
+          ctx.restore()
+        } else {
+          ctx.fillStyle = '#4ecca3'
+          ctx.beginPath()
+          ctx.arc(avatarCX, rowCy, avatarS / 2, 0, Math.PI * 2)
+          ctx.fill()
+          // 头像首字
+          ctx.fillStyle = '#ffffff'
+          ctx.font = 'bold ' + Math.round(avatarS * 0.5) + 'px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          const initial = (item.nickname || '?')[0]
+          ctx.fillText(initial, avatarCX, rowCy)
+        }
 
         // 昵称
         const nameX = avatarX + avatarS + w * 0.03

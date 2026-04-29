@@ -14,9 +14,9 @@ GameGlobal.pixelRatio = 1
 
 // 服务器配置
 // 线上域名（多游戏共用 game.yunque.co，通过路径前缀 /hustle 区分）
-// GameGlobal.serverUrl = 'https://game.yunque.co/hustle'
+GameGlobal.serverUrl = 'https://game.yunque.co/hustle'
 // 本地调试
-GameGlobal.serverUrl = 'http://127.0.0.1:8089'
+// GameGlobal.serverUrl = 'http://127.0.0.1:8089'
 
 // 用户信息
 GameGlobal.token = ''

@@ -125,29 +125,30 @@ wx.request({
 
 ## 6. 登录与用户
 
-微信登录体系，获取用户身份。
+授权作为进入游戏的前置场景：`loading` 完成后若本地无 token 则强制跳到 `scenes/auth.js`，用户必须点击微信授权按钮才能进菜单。
 
 | API | 说明 | 使用场景 |
 |-----|------|---------|
-| `wx.login()` | 获取登录 code | 启动时调用，code 发给后端换 openid |
-| `wx.getUserInfo()` | 获取用户信息（需授权） | 获取昵称、头像 |
+| `wx.login()` | 获取登录 code | 授权按钮 onTap 回调内调用，code 发给后端换 token |
+| `wx.createUserInfoButton()` | 创建小游戏专用的授权按钮 | auth 场景中可见，一次性拿到昵称+头像 |
+| `wx.setStorageSync / getStorageSync` | 本地持久化 token + 用户信息 | 避免重复登录 |
 
-**登录流程：**
+> 小游戏环境下 `wx.getUserProfile` 已废弃，必须使用 `wx.createUserInfoButton` 触发授权。
+
+**完整授权流程（auth 场景）：**
 ```js
-wx.login({
-  success(res) {
-    const code = res.code
-    // 将 code 发送给后端，换取 token
-    wx.request({
-      url: 'https://your-server.com/api/auth/login',
-      method: 'POST',
-      data: { code },
-      success(res) {
-        const token = res.data.token
-        wx.setStorageSync('token', token)
-      }
-    })
-  }
+const btn = wx.createUserInfoButton({
+  type: 'text', text: '微信授权登录',
+  style: { left: 80, top: 600, width: 240, height: 50,
+           backgroundColor: '#07C160', color: '#ffffff',
+           textAlign: 'center', fontSize: 18, borderRadius: 25 },
+  withCredentials: false, lang: 'zh_CN'
+})
+btn.onTap((res) => {
+  if (!res.userInfo) return  // 用户拒绝
+  // 1) wx.login 拿 code → POST /api/auth/login 换 token
+  // 2) POST /api/auth/update-profile 写回昵称头像
+  // 3) token + userInfo 保存到 wx.setStorageSync，跳 menu
 })
 ```
 

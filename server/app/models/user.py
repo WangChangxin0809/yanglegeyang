@@ -9,7 +9,7 @@ from app.core.database import Base
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "hd_users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     openid: Mapped[str] = mapped_column(String(64), unique=True, index=True, comment="微信 OpenID")
