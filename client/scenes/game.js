@@ -1,35 +1,21 @@
 const Scene = require('./base')
 const LEVELS = require('./game/levels')
-const cardRender = require('./game/cardRender')
+const renders = require('./game/renders/index')
 const gameLogic = require('./game/gameLogic')
 const props = require('./game/props/index')
 const dialogs = require('./game/dialogs/index')
 const { post } = require('../utils/request')
-const { getImageUrl } = require('../utils/assets')
 const { playBgm, playBgmGroup, playSfx } = require('../utils/audio')
 
 /**
  * 游戏核心场景
  * 羊了个羊 三消玩法：多层卡牌 + 底部槽位
  *
- * 职责：场景生命周期、背景/HUD 渲染、关卡切换
- * 卡牌生成与绘制 → cardRender
- * 游戏逻辑 → gameLogic
+ * 职责：场景生命周期、状态管理、关卡切换、动画/特效更新
+ * 渲染分类 → renders/*
+ * 游戏逻辑 → gameLogic（含卡牌生成、遮挡判定）
  * 关卡数据 → levels
  */
-
-// ==================== 屏幕比例参数（统一管理） ====================
-// 标题区
-const TITLE_FONT_SCALE = 0.055   // 标题字号 = 屏幕宽度 × 5.5%
-const TITLE_TOP        = 0.02    // 标题顶部 = 屏幕高度 × 2%
-
-// 结算特效
-const END_FX_TITLE_Y       = 0.38    // 结算标题 Y 位置（屏幕高度比例）
-const END_FX_TITLE_FONT    = 0.1     // 结算标题字号（屏幕宽度比例）
-const END_FX_SUB_FONT      = 0.055   // 结算副标题字号（屏幕宽度比例）
-const END_FX_SUB_OFFSET    = 1.2     // 副标题与标题的间距（标题字号的倍数）
-
-// ========================================================
 
 class GameScene extends Scene {
   constructor() {
@@ -39,7 +25,6 @@ class GameScene extends Scene {
     this.maxSlots = 7
     this.gameOver = false
     this.gameWin = false
-    this.bgImg = null
     this.level = 1
     this.anims = []  // 飞行动画队列
     this.matchFx = []  // 消除特效
@@ -79,16 +64,11 @@ class GameScene extends Scene {
     // 重置道具次数
     props.init()
 
-    // 加载背景图
-    const bg = wx.createImage()
-    bg.src = getImageUrl('game/bgs/game_bg01.png')
-    bg.onload = () => { this.bgImg = bg }
-
-    // 预加载卡牌图片
-    cardRender.preloadImages()
+    // 预加载所有渲染模块所需素材（背景/卡牌/槽位/道具）
+    renders.preloadAll()
 
     // 根据关卡配置生成卡牌
-    this.cards = cardRender.generateCards(this.level, this.width, this.height)
+    this.cards = gameLogic.generateCards(this.level, this.width, this.height)
   }
 
   onTouchStart(x, y) {
@@ -112,10 +92,7 @@ class GameScene extends Scene {
     }
 
     // 返回按钮点击检测
-    const backSize = Math.round(this.width * 0.09)
-    const backX = this.width * 0.03
-    const backY = this.height * 0.015
-    if (x >= backX && x <= backX + backSize && y >= backY && y <= backY + backSize) {
+    if (renders.backButton.hit(x, y, { width: this.width, height: this.height })) {
       this.dialog = {
         type: 'confirm',
         title: '确认退出游戏？',
@@ -130,7 +107,7 @@ class GameScene extends Scene {
 
     // 道具区点击检测
     for (let i = 0; i < 4; i++) {
-      const btn = cardRender.getPropPosition(i, { width: this.width, height: this.height })
+      const btn = renders.props.getPropPosition(i, { width: this.width, height: this.height })
       if (x >= btn.x && x <= btn.x + btn.size && y >= btn.y && y <= btn.y + btn.size) {
         const result = props.use(i, { cards: this.cards, slots: this.slots, history: this.history, width: this.width, height: this.height })
         if (result === 'peek') {
@@ -173,7 +150,7 @@ class GameScene extends Scene {
     const insertIdx = this.slots.length
 
     // 计算目标位置
-    const target = cardRender.getSlotPosition(insertIdx, { width: this.width, height: this.height })
+    const target = renders.slots.getSlotPosition(insertIdx, { width: this.width, height: this.height })
 
     // 创建飞行动画
     this.anims.push({
@@ -305,7 +282,7 @@ class GameScene extends Scene {
     // 找出区域内所有顶层卡牌（未被更高层遮挡的）
     const peekCards = []
     for (const card of inRange) {
-      if (!cardRender.isBlocked(card, this.cards)) {
+      if (!gameLogic.isBlocked(card, this.cards)) {
         peekCards.push(card)
       }
     }
@@ -434,7 +411,7 @@ class GameScene extends Scene {
     let count = 0
     for (let i = 0; i < oldSlots.length && count < 3; i++) {
       if (oldSlots[i].icon === removedIcon) {
-        const pos = cardRender.getSlotPosition(i, { width: this.width, height: this.height })
+        const pos = renders.slots.getSlotPosition(i, { width: this.width, height: this.height })
         // 闪光缩放特效
         this.matchFx.push({
           x: pos.x, y: pos.y, size: pos.size,
@@ -465,206 +442,46 @@ class GameScene extends Scene {
 
   render() {
     const { ctx, width, height } = this
+    const cfg = { width, height }
 
     // 背景
-    if (this.bgImg) {
-      ctx.drawImage(this.bgImg, 0, 0, width, height)
-    } else {
-      ctx.fillStyle = '#2d3436'
-      ctx.fillRect(0, 0, width, height)
-    }
+    renders.background.render(ctx, cfg)
 
     // 返回按钮
-    const backSize = Math.round(width * 0.09)
-    const backX = width * 0.03
-    const backY = height * 0.015
-    ctx.save()
-    ctx.fillStyle = 'rgba(0,0,0,0.4)'
-    ctx.beginPath()
-    ctx.arc(backX + backSize / 2, backY + backSize / 2, backSize / 2, 0, Math.PI * 2)
-    ctx.fill()
-    // 箭头
-    ctx.strokeStyle = '#ffffff'
-    ctx.lineWidth = 2.5
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    const cx = backX + backSize / 2
-    const cy = backY + backSize / 2
-    const ar = backSize * 0.22
-    ctx.beginPath()
-    ctx.moveTo(cx + ar * 0.3, cy - ar)
-    ctx.lineTo(cx - ar * 0.7, cy)
-    ctx.lineTo(cx + ar * 0.3, cy + ar)
-    ctx.stroke()
-    ctx.restore()
+    renders.backButton.render(ctx, cfg)
 
     // 关卡标题
     const levelIdx = Math.min(this.level - 1, LEVELS.length - 1)
-    ctx.fillStyle = '#ffffff'
-    const titleSize = Math.round(width * TITLE_FONT_SCALE)
-    ctx.font = 'bold ' + titleSize + 'px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'top'
-    ctx.fillText(LEVELS[levelIdx].title, width / 2, height * TITLE_TOP)
+    renders.title.render(ctx, cfg, LEVELS[levelIdx].title)
 
-    // 绘制卡牌
-    cardRender.renderCards(ctx, this.cards, this.peekCards, this.peekTimer)
+    // 卡牌
+    renders.cards.renderCards(ctx, this.cards, this.peekCards, this.peekTimer)
 
-    // 绘制槽位
-    cardRender.renderSlots(ctx, this.slots, {
-      width, height,
-      maxSlots: this.maxSlots
-    })
+    // 槽位
+    renders.slots.renderSlots(ctx, this.slots, { width, height, maxSlots: this.maxSlots })
 
-    // 绘制道具区
+    // 道具区
     const propCounts = [props.getCount(0), props.getCount(1), props.getCount(2), props.getCount(3)]
-    cardRender.renderProps(ctx, { width, height }, propCounts)
+    renders.props.renderProps(ctx, cfg, propCounts)
 
-    // 绘制飞行动画中的卡牌
-    for (const anim of this.anims) {
-      const t = Math.min(anim.progress / anim.duration, 1)
-      // easeOutCubic 缓动
-      const ease = 1 - Math.pow(1 - t, 3)
-      const cx = anim.fromX + (anim.toX - anim.fromX) * ease
-      const cy = anim.fromY + (anim.toY - anim.fromY) * ease
-      const cw = anim.fromW + (anim.toW - anim.fromW) * ease
-      const ch = anim.fromH + (anim.toH - anim.fromH) * ease
+    // 飞行中的卡牌动画
+    renders.flyAnim.render(ctx, this.anims)
 
-      // 绘制卡牌背景
-      ctx.fillStyle = '#fffdf5'
-      ctx.fillRect(cx, cy, cw, ch)
-      ctx.strokeStyle = '#c8a96e'
-      ctx.lineWidth = 1.5
-      ctx.strokeRect(cx, cy, cw, ch)
+    // 三消闪光特效
+    renders.matchFx.render(ctx, this.matchFx)
 
-      // 绘制图标
-      const iconImg = cardRender.getIconImg(anim.icon)
-      if (iconImg) {
-        const pad = cw * 0.07
-        ctx.drawImage(iconImg, cx + pad, cy + pad, cw - pad * 2, ch - pad * 2)
-      }
-    }
+    // 粒子
+    renders.particles.render(ctx, this.particles)
 
-    // 绘制消除特效
-    for (const fx of this.matchFx) {
-      const t = fx.progress / fx.duration
-      const scale = 1 + t * 0.4          // 放大到 1.4 倍
-      const alpha = 1 - t                 // 淡出
-      const cx = fx.x + fx.size / 2
-      const cy = fx.y + fx.size / 2
-      const sw = fx.size * scale
-      const sh = fx.size * scale
-
-      ctx.save()
-      ctx.globalAlpha = alpha
-      // 白色闪光底
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(cx - sw / 2, cy - sh / 2, sw, sh)
-      // 卡牌图标
-      const iconImg = cardRender.getIconImg(fx.icon)
-      if (iconImg) {
-        const pad = sw * 0.07
-        ctx.drawImage(iconImg, cx - sw / 2 + pad, cy - sh / 2 + pad, sw - pad * 2, sh - pad * 2)
-      }
-      ctx.restore()
-    }
-
-    // 绘制粒子
-    for (const p of this.particles) {
-      const t = p.progress / p.duration
-      const alpha = 1 - t
-      ctx.save()
-      ctx.globalAlpha = alpha
-      ctx.fillStyle = p.color
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, p.radius * (1 - t * 0.5), 0, Math.PI * 2)
-      ctx.fill()
-      ctx.restore()
-    }
-
-    // 屏幕提示（Toast）
-    if (this.toast) {
-      const t = this.toast.progress / this.toast.duration
-      // 前 20% 淡入，后 30% 淡出
-      let alpha = 1
-      if (t < 0.2) alpha = t / 0.2
-      else if (t > 0.7) alpha = (1 - t) / 0.3
-
-      const toastFont = Math.round(width * 0.04)
-      ctx.save()
-      ctx.globalAlpha = alpha
-      ctx.font = 'bold ' + toastFont + 'px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      // 背景胶囊
-      const txt = this.toast.text
-      const tw = ctx.measureText(txt).width + toastFont * 1.5
-      const th = toastFont * 2.2
-      const tx = (width - tw) / 2
-      const ty = height * 0.4 - th / 2
-      ctx.fillStyle = 'rgba(0,0,0,0.7)'
-      ctx.beginPath()
-      const tr = th / 2
-      ctx.moveTo(tx + tr, ty)
-      ctx.arcTo(tx + tw, ty, tx + tw, ty + th, tr)
-      ctx.arcTo(tx + tw, ty + th, tx, ty + th, tr)
-      ctx.arcTo(tx, ty + th, tx, ty, tr)
-      ctx.arcTo(tx, ty, tx + tw, ty, tr)
-      ctx.closePath()
-      ctx.fill()
-      // 文字
-      ctx.fillStyle = '#ffffff'
-      ctx.fillText(txt, width / 2, height * 0.4)
-      ctx.restore()
-    }
+    // 屏幕提示
+    renders.toast.render(ctx, cfg, this.toast)
 
     // 结算全屏特效
-    if (this.endFx) {
-      const fx = this.endFx
-      const t = Math.min(fx.progress / fx.duration, 1)
-      // 蒙层渐入（前 30% 渐入到 0.7 透明度）
-      const maskAlpha = t < 0.3 ? (t / 0.3) * 0.7 : 0.7
-      ctx.save()
-      ctx.fillStyle = fx.type === 'win' ? 'rgba(0,0,0,' + maskAlpha + ')' : 'rgba(30,0,0,' + maskAlpha + ')'
-      ctx.fillRect(0, 0, width, height)
-
-      // 文字缩放+淡入（前 40% 从 2x 缩到 1x）
-      const textT = Math.min(t / 0.4, 1)
-      const scale = 1 + (1 - textT) * 1  // 2x -> 1x
-      const textAlpha = textT
-      ctx.globalAlpha = textAlpha
-
-      // 标题
-      const titleFont = Math.round(width * END_FX_TITLE_FONT)
-      ctx.save()
-      ctx.globalAlpha = textAlpha
-      ctx.font = 'bold ' + titleFont + 'px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.translate(width / 2, height * END_FX_TITLE_Y)
-      ctx.scale(scale, scale)
-      ctx.fillStyle = fx.type === 'win' ? '#00b894' : '#d63031'
-      ctx.fillText(fx.type === 'win' ? '恭喜通关！' : '游戏结束', 0, 0)
-      ctx.restore()
-
-      // 副标题（通关显示用时）
-      if (fx.type === 'win' && textT > 0.5) {
-        const subAlpha = (textT - 0.5) / 0.5
-        ctx.globalAlpha = subAlpha
-        const subFont = Math.round(width * END_FX_SUB_FONT)
-        ctx.font = subFont + 'px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillStyle = '#ffffff'
-        ctx.fillText('用时 ' + fx.clearTime.toFixed(1) + ' 秒', width / 2, height * END_FX_TITLE_Y + titleFont * END_FX_SUB_OFFSET)
-      }
-
-      ctx.restore()
-    }
+    renders.endFx.render(ctx, cfg, this.endFx)
 
     // 弹窗（确认 / 复活，统一由 dialogs 模块绘制）
     if (this.dialog) {
-      dialogs.renderDialog(ctx, { width, height }, this.dialog)
+      dialogs.renderDialog(ctx, cfg, this.dialog)
     }
   }
 }
