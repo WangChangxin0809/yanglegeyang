@@ -13,7 +13,7 @@ const MOVE_MAX = 3
 const MOVEOUT_Y      = 0.68   // 移出区 y = 屏幕高度 × 68%（棋盘底部 0.65 下方）
 const MOVEOUT_GAP    = 0.15   // 卡牌间距 = 卡牌尺寸 × 15%
 
-// 卡牌尺寸（与 cardRender 中 CARD_SIZE_SCALE 保持一致）
+// 卡牌尺寸（与 gameLogic 中 CARD_SIZE_SCALE 保持一致）
 const CARD_SIZE_SCALE = 0.12
 
 /**
