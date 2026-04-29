@@ -17,6 +17,9 @@ class MenuScene extends Scene {
     this.titleTimer = 0
     this.animalLeftImg = null
     this.animalRightImg = null
+    // 用户卡片（纯展示，授权已在 auth 场景完成）
+    this.userCard = null
+    this.avatarImg = null
   }
 
   onEnter() {
@@ -77,6 +80,34 @@ class MenuScene extends Scene {
     const animalRight = wx.createImage()
     animalRight.src = getImageUrl('menu/elements/animal_right.png')
     animalRight.onload = () => { this.animalRightImg = animalRight }
+
+    // 用户卡片（右上角）仅展示昵称头像，不接收点击
+    this._initUserCard()
+    this._loadAvatar()
+  }
+
+  /** 初始化右上角用户卡片坐标（纯展示） */
+  _initUserCard() {
+    const w = this.width
+    const h = this.height
+    const cardW = Math.round(w * 0.36)
+    const cardH = Math.round(h * 0.08)
+    const cardX = Math.round(w - cardW - w * 0.03)
+    const cardY = Math.round(h * 0.02)
+    this.userCard = { x: cardX, y: cardY, width: cardW, height: cardH }
+  }
+
+  /** 加载头像图片（来自微信授权返回的 avatarUrl） */
+  _loadAvatar() {
+    const info = GameGlobal.userInfo
+    if (!info || !info.avatar_url) {
+      this.avatarImg = null
+      return
+    }
+    const img = wx.createImage()
+    img.src = info.avatar_url
+    img.onload = () => { this.avatarImg = img }
+    img.onerror = () => { this.avatarImg = null }
   }
 
   onTouchStart(x, y) {
@@ -228,6 +259,63 @@ class MenuScene extends Scene {
       ctx.fillText('🏆', rbCX, rbCY)
       ctx.restore()
     }
+
+    // 右上角用户卡片（头像 + 昵称）
+    this._renderUserCard(ctx)
+  }
+
+  _renderUserCard(ctx) {
+    const card = this.userCard
+    const info = GameGlobal.userInfo
+    if (!card || !info) return
+
+    // 卡片背景
+    ctx.save()
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'
+    const r = 8
+    const { x, y, width: cw, height: ch } = card
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.arcTo(x + cw, y, x + cw, y + ch, r)
+    ctx.arcTo(x + cw, y + ch, x, y + ch, r)
+    ctx.arcTo(x, y + ch, x, y, r)
+    ctx.arcTo(x, y, x + cw, y, r)
+    ctx.closePath()
+    ctx.fill()
+
+    // 头像区（左侧圆形）
+    const avatarS = ch * 0.7
+    const avatarCX = x + ch * 0.5
+    const avatarCY = y + ch / 2
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(avatarCX, avatarCY, avatarS / 2, 0, Math.PI * 2)
+    ctx.clip()
+    if (this.avatarImg) {
+      ctx.drawImage(this.avatarImg, avatarCX - avatarS / 2, avatarCY - avatarS / 2, avatarS, avatarS)
+    } else {
+      ctx.fillStyle = '#4ecca3'
+      ctx.fillRect(avatarCX - avatarS / 2, avatarCY - avatarS / 2, avatarS, avatarS)
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold ' + Math.round(avatarS * 0.5) + 'px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText((info.nickname || '?')[0], avatarCX, avatarCY)
+    }
+    ctx.restore()
+
+    // 昵称
+    ctx.fillStyle = '#ffffff'
+    const font = Math.round(ch * 0.38)
+    ctx.font = 'bold ' + font + 'px sans-serif'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    const textX = x + ch + 6
+    const textMaxW = cw - ch - 12
+    let label = info.nickname || ''
+    if (label.length > 7) label = label.substring(0, 7) + '…'
+    ctx.fillText(label, textX, y + ch / 2, textMaxW)
+    ctx.restore()
   }
 }
 

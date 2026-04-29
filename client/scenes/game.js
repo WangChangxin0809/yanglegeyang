@@ -157,6 +157,8 @@ class GameScene extends Scene {
         }
         // 输赢判定（与 update() 中一致）
         this._checkAndPlayResult()
+        // 通关后处理：上报记录 + 根据关卡决定是否进入下一关
+        this._onGameWinPostProcess()
         return;
       }
     }
@@ -251,21 +253,8 @@ class GameScene extends Scene {
         // 输赢判定
         this._checkAndPlayResult()
 
-        // 通关时上报记录
-        if (this.gameWin && !this.recordSubmitted) {
-          this.recordSubmitted = true
-          const clearTime = (Date.now() - this.levelStartTime) / 1000
-          console.log('[game] 通关！关卡:', this.level, '耗时:', clearTime.toFixed(1) + 's')
-          if (GameGlobal.token) {
-            post('/api/record/submit', { level_id: this.level, clear_time: clearTime })
-              .then((data) => console.log('[game] 通关记录已上报, id:', data.id))
-              .catch((err) => console.warn('[game] 上报失败:', err))
-          }
-        }
-
-        if (this.gameWin && this.level < LEVELS.length) {
-          this._nextLevel = true
-        }
+        // 通关后处理：上报记录 + 根据关卡决定是否进入下一关
+        this._onGameWinPostProcess()
 
         this.anims.splice(i, 1)
       }
@@ -361,6 +350,30 @@ class GameScene extends Scene {
       playSfx('success')
     } else if (!wasOver && this.gameOver) {
       playSfx('defeat')
+    }
+  }
+
+  /**
+   * 通关后处理：上报通关记录 + 根据当前关卡决定下一步去向
+   * - 若 level < LEVELS.length：标记 _nextLevel=true，覆盖层提示进入下一关
+   * - 若已是最后一关：保持 _nextLevel=false，覆盖层提示返回主菜单
+   */
+  _onGameWinPostProcess() {
+    if (!this.gameWin) return
+    // 上报通关记录（仅一次）
+    if (!this.recordSubmitted) {
+      this.recordSubmitted = true
+      const clearTime = (Date.now() - this.levelStartTime) / 1000
+      console.log('[game] 通关！关卡:', this.level, '耗时:', clearTime.toFixed(1) + 's')
+      if (GameGlobal.token) {
+        post('/api/record/submit', { level_id: this.level, clear_time: clearTime })
+          .then((data) => console.log('[game] 通关记录已上报, id:', data.id))
+          .catch((err) => console.warn('[game] 上报失败:', err))
+      }
+    }
+    // 后面还有关卡则允许进入下一关
+    if (this.level < LEVELS.length) {
+      this._nextLevel = true
     }
   }
 

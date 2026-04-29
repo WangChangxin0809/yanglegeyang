@@ -1,4 +1,4 @@
-"""PostgreSQL 异步连接与会话管理"""
+"""MySQL 异步连接与会话管理"""
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase

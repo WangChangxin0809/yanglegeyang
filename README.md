@@ -27,7 +27,7 @@
 ├── server/              # 后端服务（FastAPI）
 │   ├── app/
 │   │   ├── api/         # 路由（用户、记录）
-│   │   ├── core/        # 核心配置（数据库、Redis）
+│   │   ├── core/        # 核心配置（数据库）
 │   │   ├── models/      # 数据模型
 │   │   └── services/    # 业务逻辑
 │   └── main.py          # 服务入口
@@ -42,7 +42,7 @@
 
 - **前端**：微信小游戏原生 Canvas 2D
 - **后端**：Python FastAPI + Uvicorn
-- **数据库**：PostgreSQL + Redis（缓存）
+- **数据库**：MySQL 8.x；与「金毛大战波斯猫」项目共用一个 MySQL 实例，本项目表统一用 `hd_` 前缀
 
 ## 快速开始
 

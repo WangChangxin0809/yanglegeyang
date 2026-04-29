@@ -7,7 +7,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import init_db
-from app.core.redis import init_redis, close_redis
 from app.api.auth import router as auth_router
 from app.api.record import router as record_router
 from config import get_settings
@@ -17,24 +16,15 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期：启动时初始化数据库和 Redis，关闭时清理连接"""
+    """应用生命周期：启动时初始化数据库连接"""
     # 启动 — 连接失败仅告警，不阻断服务
     try:
         await init_db()
-        logger.info("PostgreSQL 连接成功")
+        logger.info("MySQL 连接成功")
     except Exception as e:
-        logger.warning(f"PostgreSQL 连接失败，部分功能不可用: {e}")
-
-    try:
-        await init_redis()
-        logger.info("Redis 连接成功")
-    except Exception as e:
-        logger.warning(f"Redis 连接失败，缓存功能不可用: {e}")
+        logger.warning(f"MySQL 连接失败，部分功能不可用: {e}")
 
     yield
-
-    # 关闭
-    await close_redis()
 
 
 app = FastAPI(
