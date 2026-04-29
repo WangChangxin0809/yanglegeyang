@@ -12,6 +12,7 @@ class MenuScene extends Scene {
     this.startBtn = null
     this.rankBtn = null
     this.startImg = null
+    this.rankImg = null
     this.bgImg = null
     this.titleImg = null
     this.titleTimer = 0
@@ -71,6 +72,12 @@ class MenuScene extends Scene {
     img.onerror = () => {
       this.startImg = null
     }
+
+    // 加载排行榜按钮图片
+    const rankImg = wx.createImage()
+    rankImg.src = getImageUrl('menu/buttons/button_rank.png')
+    rankImg.onload = () => { this.rankImg = rankImg }
+    rankImg.onerror = () => { this.rankImg = null }
 
     // 加载按钮装饰动物图片
     const animalLeft = wx.createImage()
@@ -245,19 +252,25 @@ class MenuScene extends Scene {
       const rbCY = rb.y + rb.height / 2
       const rbR = rb.width / 2
 
-      ctx.save()
-      ctx.fillStyle = 'rgba(0,0,0,0.35)'
-      ctx.beginPath()
-      ctx.arc(rbCX, rbCY, rbR, 0, Math.PI * 2)
-      ctx.fill()
+      if (this.rankImg) {
+        // 优先用图片
+        ctx.drawImage(this.rankImg, rb.x, rb.y, rb.width, rb.height)
+      } else {
+        // 回退：黑色圆底 + 🏆 emoji
+        ctx.save()
+        ctx.fillStyle = 'rgba(0,0,0,0.35)'
+        ctx.beginPath()
+        ctx.arc(rbCX, rbCY, rbR, 0, Math.PI * 2)
+        ctx.fill()
 
-      ctx.fillStyle = '#ffffff'
-      const iconFont = Math.round(rb.width * 0.4)
-      ctx.font = iconFont + 'px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('🏆', rbCX, rbCY)
-      ctx.restore()
+        ctx.fillStyle = '#ffffff'
+        const iconFont = Math.round(rb.width * 0.4)
+        ctx.font = iconFont + 'px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('🏆', rbCX, rbCY)
+        ctx.restore()
+      }
     }
 
     // 右上角用户卡片（头像 + 昵称）

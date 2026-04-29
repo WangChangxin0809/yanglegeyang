@@ -3,6 +3,7 @@ const LEVELS = require('./game/levels')
 const cardRender = require('./game/cardRender')
 const gameLogic = require('./game/gameLogic')
 const props = require('./game/props/index')
+const dialogs = require('./game/dialogs/index')
 const { post } = require('../utils/request')
 const { getImageUrl } = require('../utils/assets')
 const { playBgm, playBgmGroup, playSfx } = require('../utils/audio')
@@ -22,11 +23,12 @@ const { playBgm, playBgmGroup, playSfx } = require('../utils/audio')
 const TITLE_FONT_SCALE = 0.055   // 标题字号 = 屏幕宽度 × 5.5%
 const TITLE_TOP        = 0.02    // 标题顶部 = 屏幕高度 × 2%
 
-// 结束覆盖层
-const END_BIG_FONT     = 0.10    // 大标题字号 = 屏幕宽度 × 10%
-const END_BIG_Y        = 0.45    // 大标题位置 = 屏幕高度 × 45%
-const END_SMALL_FONT   = 0.05    // 小提示字号 = 屏幕宽度 × 5%
-const END_SMALL_Y      = 0.52    // 小提示位置 = 屏幕高度 × 52%
+// 结算特效
+const END_FX_TITLE_Y       = 0.38    // 结算标题 Y 位置（屏幕高度比例）
+const END_FX_TITLE_FONT    = 0.1     // 结算标题字号（屏幕宽度比例）
+const END_FX_SUB_FONT      = 0.055   // 结算副标题字号（屏幕宽度比例）
+const END_FX_SUB_OFFSET    = 1.2     // 副标题与标题的间距（标题字号的倍数）
+
 // ========================================================
 
 class GameScene extends Scene {
@@ -43,14 +45,15 @@ class GameScene extends Scene {
     this.matchFx = []  // 消除特效
     this.particles = [] // 粒子效果
     this.history = []  // 撤回历史栈
-    this.stash = []    // 暂存区（移出道具）
     this.toast = null   // 屏幕提示 { text, progress, duration }
     this.peekMode = false  // 透视模式：等待点击卡牌
     this.peekCards = []    // 透视中的卡牌引用
     this.peekTimer = 0     // 透视剩余时间 ms
-    this.showConfirm = false // 退出确认弹窗
+    this.dialog = null       // 当前弹窗：null 或 { title, confirmText, cancelText, onConfirm, onCancel, confirmColor, cancelColor }
     this.levelStartTime = 0  // 关卡开始时间戳
     this.recordSubmitted = false // 通关记录是否已提交
+    this.revived = false         // 本关是否已复活过
+    this.endFx = null              // 结算特效 { type:'win'|'lose', progress:0, duration:2500, onEnd }
   }
 
   /** 从菜单进入时重置关卡 */
@@ -67,10 +70,10 @@ class GameScene extends Scene {
     this.slots = []
     this.gameOver = false
     this.gameWin = false
-    this._nextLevel = false
     this.history = []
-    this.stash = []
     this.recordSubmitted = false
+    this.revived = false
+    this.endFx = null
     this.levelStartTime = Date.now()
 
     // 重置道具次数
@@ -89,33 +92,22 @@ class GameScene extends Scene {
   }
 
   onTouchStart(x, y) {
-    // 确认弹窗状态下的点击处理
-    if (this.showConfirm) {
-      const dlgW = this.width * 0.7
-      const dlgH = this.height * 0.22
-      const dlgX = (this.width - dlgW) / 2
-      const dlgY = (this.height - dlgH) / 2
-      const btnW = dlgW * 0.35
-      const btnH = dlgH * 0.28
-      const btnY = dlgY + dlgH * 0.62
-      const cancelX = dlgX + dlgW * 0.12
-      const confirmX = dlgX + dlgW * 0.53
+    // 结算特效播放中不响应点击
+    if (this.endFx) return
 
-      // 点击“确认退出”
-      if (x >= confirmX && x <= confirmX + btnW && y >= btnY && y <= btnY + btnH) {
-        this.showConfirm = false
-        if (this.onBack) this.onBack()
-        return
+    // 弹窗状态下的点击处理（确认弹窗 / 结算弹窗）
+    if (this.dialog) {
+      const hit = dialogs.hitDialog(x, y, { width: this.width, height: this.height }, this.dialog)
+      if (hit === 'confirm') {
+        const cb = this.dialog.onConfirm
+        this.dialog = null
+        cb && cb()
+      } else if (hit === 'cancel') {
+        const cb = this.dialog.onCancel
+        this.dialog = null
+        cb && cb()
       }
-      // 点击“继续游戏”
-      if (x >= cancelX && x <= cancelX + btnW && y >= btnY && y <= btnY + btnH) {
-        this.showConfirm = false
-        return
-      }
-      // 点击弹窗外也关闭
-      if (x < dlgX || x > dlgX + dlgW || y < dlgY || y > dlgY + dlgH) {
-        this.showConfirm = false
-      }
+      // outside / null：点击弹窗外或弹窗内空白，不做任何操作
       return
     }
 
@@ -124,50 +116,23 @@ class GameScene extends Scene {
     const backX = this.width * 0.03
     const backY = this.height * 0.015
     if (x >= backX && x <= backX + backSize && y >= backY && y <= backY + backSize) {
-      this.showConfirm = true
-      return
-    }
-
-    if (this.gameOver || this.gameWin) {
-      if (this.gameWin && this._nextLevel) {
-        this._nextLevel = false
-        this.level++
-        this._startLevel()
-      } else {
-        if (this.onBack) this.onBack()
+      this.dialog = {
+        type: 'confirm',
+        title: '确认退出游戏？',
+        confirmText: '确认退出',
+        cancelText: '继续游戏',
+        onConfirm: () => { if (this.onBack) this.onBack() },
       }
       return
     }
 
-    // 暂存区点击检测：点击暂存卡牌回归槽位
-    for (let i = 0; i < this.stash.length; i++) {
-      const pos = cardRender.getStashPosition(i, this.stash.length, { width: this.width, height: this.height })
-      if (x >= pos.x && x <= pos.x + pos.size && y >= pos.y && y <= pos.y + pos.size) {
-        if (this.slots.length >= this.maxSlots) return  // 槽位已满
-        const card = this.stash.splice(i, 1)[0]
-        this.slots.push(card)
-        // 记录撤回历史（标记来源为暂存区）
-        this.history.push({ card: card, fromStash: true })
-        // 检查三消
-        const oldSlots = this.slots.slice()
-        this.slots = gameLogic.checkMatch(this.slots)
-        if (this.slots.length < oldSlots.length) {
-          this._spawnMatchFx(oldSlots, this.slots)
-          this.history = []
-        }
-        // 输赢判定（与 update() 中一致）
-        this._checkAndPlayResult()
-        // 通关后处理：上报记录 + 根据关卡决定是否进入下一关
-        this._onGameWinPostProcess()
-        return;
-      }
-    }
-    
+    if (this.gameOver || this.gameWin) return
+
     // 道具区点击检测
     for (let i = 0; i < 4; i++) {
       const btn = cardRender.getPropPosition(i, { width: this.width, height: this.height })
       if (x >= btn.x && x <= btn.x + btn.size && y >= btn.y && y <= btn.y + btn.size) {
-        const result = props.use(i, { cards: this.cards, slots: this.slots, history: this.history, stash: this.stash })
+        const result = props.use(i, { cards: this.cards, slots: this.slots, history: this.history, width: this.width, height: this.height })
         if (result === 'peek') {
           this.peekMode = true
           this._showToast('请点击一张顶层卡牌')
@@ -296,6 +261,16 @@ class GameScene extends Scene {
         this.particles.splice(i, 1)
       }
     }
+
+    // 结算特效计时
+    if (this.endFx) {
+      this.endFx.progress += dt
+      if (this.endFx.progress >= this.endFx.duration) {
+        const cb = this.endFx.onEnd
+        this.endFx = null
+        cb && cb()
+      }
+    }
   }
 
   /** 显示屏幕提示 */
@@ -343,20 +318,88 @@ class GameScene extends Scene {
   /** 输赢判定 + 音效（胜利优先，首次进入才响一次） */
   _checkAndPlayResult() {
     const wasOver = this.gameOver || this.gameWin
-    const result = gameLogic.checkResult(this.cards, this.slots, this.maxSlots, this.stash)
+    const result = gameLogic.checkResult(this.cards, this.slots, this.maxSlots)
     this.gameOver = result.gameOver
     this.gameWin = result.gameWin
     if (!wasOver && this.gameWin) {
       playSfx('success')
+      const hasNext = this.level < LEVELS.length
+      this._startEndFx('win', () => {
+        if (hasNext) {
+          this.level++
+          this._startLevel()
+        } else {
+          if (this.onBack) this.onBack()
+        }
+      })
     } else if (!wasOver && this.gameOver) {
       playSfx('defeat')
+      if (!this.revived) {
+        // 未复活过：弹出复活弹窗
+        this._showReviveDialog()
+      } else {
+        // 已复活过：播放失败特效后返回主菜单
+        this._startEndFx('lose', () => {
+          if (this.onBack) this.onBack()
+        })
+      }
+    }
+  }
+
+  /** 启动结算全屏特效 */
+  _startEndFx(type, onEnd) {
+    this.endFx = {
+      type: type,
+      progress: 0,
+      duration: 4000,
+      clearTime: (Date.now() - this.levelStartTime) / 1000,
+      onEnd: onEnd,
+    }
+    // 生成庆祝/失败粒子爆发
+    const colors = type === 'win'
+      ? ['#FFD700', '#00b894', '#48DBFB', '#FECA57', '#FF9FF3', '#55efc4']
+      : ['#d63031', '#e17055', '#fdcb6e', '#636e72', '#b2bec3', '#ff7675']
+    const cx = this.width / 2
+    const cy = this.height * 0.35
+    for (let j = 0; j < 24; j++) {
+      const angle = (Math.PI * 2 / 24) * j + Math.random() * 0.3
+      const speed = 3 + Math.random() * 5
+      this.particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 3,
+        radius: 3 + Math.random() * 4,
+        color: colors[j % colors.length],
+        progress: 0,
+        duration: 800 + Math.random() * 600,
+      })
+    }
+  }
+
+  /** 弹出复活弹窗 */
+  _showReviveDialog() {
+    this.dialog = {
+      type: 'revive',
+      onConfirm: () => {
+        // 复活：执行一次 moveOut，从槽位取牌放到棋盘下方
+        this.revived = true
+        this.gameOver = false
+
+        // 给 moveOut(0) 加 1 次
+        props.addCount(0, 1)
+
+        // 执行 moveOut
+        const state = { cards: this.cards, slots: this.slots, history: this.history, width: this.width, height: this.height }
+        props.use(0, state)
+      },
+      onCancel: () => {
+        if (this.onBack) this.onBack()
+      },
     }
   }
 
   /**
-   * 通关后处理：上报通关记录 + 根据当前关卡决定下一步去向
-   * - 若 level < LEVELS.length：标记 _nextLevel=true，覆盖层提示进入下一关
-   * - 若已是最后一关：保持 _nextLevel=false，覆盖层提示返回主菜单
+   * 通关后处理：上报通关记录
    */
   _onGameWinPostProcess() {
     if (!this.gameWin) return
@@ -370,10 +413,6 @@ class GameScene extends Scene {
           .then((data) => console.log('[game] 通关记录已上报, id:', data.id))
           .catch((err) => console.warn('[game] 上报失败:', err))
       }
-    }
-    // 后面还有关卡则允许进入下一关
-    if (this.level < LEVELS.length) {
-      this._nextLevel = true
     }
   }
 
@@ -477,9 +516,6 @@ class GameScene extends Scene {
       maxSlots: this.maxSlots
     })
 
-    // 绘制暂存区
-    cardRender.renderStash(ctx, this.stash, { width, height })
-
     // 绘制道具区
     const propCounts = [props.getCount(0), props.getCount(1), props.getCount(2), props.getCount(3)]
     cardRender.renderProps(ctx, { width, height }, propCounts)
@@ -582,93 +618,53 @@ class GameScene extends Scene {
       ctx.restore()
     }
 
-    // 游戏结束/胜利覆盖层
-    if (this.gameOver || this.gameWin) {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'
+    // 结算全屏特效
+    if (this.endFx) {
+      const fx = this.endFx
+      const t = Math.min(fx.progress / fx.duration, 1)
+      // 蒙层渐入（前 30% 渐入到 0.7 透明度）
+      const maskAlpha = t < 0.3 ? (t / 0.3) * 0.7 : 0.7
+      ctx.save()
+      ctx.fillStyle = fx.type === 'win' ? 'rgba(0,0,0,' + maskAlpha + ')' : 'rgba(30,0,0,' + maskAlpha + ')'
       ctx.fillRect(0, 0, width, height)
 
-      ctx.fillStyle = this.gameWin ? '#00b894' : '#d63031'
-      const bigFont = Math.round(width * END_BIG_FONT)
-      ctx.font = 'bold ' + bigFont + 'px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(this.gameWin ? '恭喜通关！' : '游戏结束', width / 2, height * END_BIG_Y)
-
-      ctx.fillStyle = '#ffffff'
-      const smallFont = Math.round(width * END_SMALL_FONT)
-      ctx.font = smallFont + 'px sans-serif'
-      if (this.gameWin && this._nextLevel) {
-        ctx.fillText('点击屏幕进入下一关', width / 2, height * END_SMALL_Y)
-      } else {
-        ctx.fillText('点击屏幕返回主菜单', width / 2, height * END_SMALL_Y)
-      }
-    }
-    // 退出确认弹窗
-    if (this.showConfirm) {
-      // 蒙层
-      ctx.fillStyle = 'rgba(0,0,0,0.5)'
-      ctx.fillRect(0, 0, width, height)
-
-      // 弹窗
-      const dlgW = width * 0.7
-      const dlgH = height * 0.22
-      const dlgX = (width - dlgW) / 2
-      const dlgY = (height - dlgH) / 2
-      const r = 12
-
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.moveTo(dlgX + r, dlgY)
-      ctx.arcTo(dlgX + dlgW, dlgY, dlgX + dlgW, dlgY + dlgH, r)
-      ctx.arcTo(dlgX + dlgW, dlgY + dlgH, dlgX, dlgY + dlgH, r)
-      ctx.arcTo(dlgX, dlgY + dlgH, dlgX, dlgY, r)
-      ctx.arcTo(dlgX, dlgY, dlgX + dlgW, dlgY, r)
-      ctx.closePath()
-      ctx.fill()
+      // 文字缩放+淡入（前 40% 从 2x 缩到 1x）
+      const textT = Math.min(t / 0.4, 1)
+      const scale = 1 + (1 - textT) * 1  // 2x -> 1x
+      const textAlpha = textT
+      ctx.globalAlpha = textAlpha
 
       // 标题
-      ctx.fillStyle = '#333333'
-      const dlgFont = Math.round(width * 0.045)
-      ctx.font = 'bold ' + dlgFont + 'px sans-serif'
+      const titleFont = Math.round(width * END_FX_TITLE_FONT)
+      ctx.save()
+      ctx.globalAlpha = textAlpha
+      ctx.font = 'bold ' + titleFont + 'px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('确认退出游戏？', width / 2, dlgY + dlgH * 0.3)
+      ctx.translate(width / 2, height * END_FX_TITLE_Y)
+      ctx.scale(scale, scale)
+      ctx.fillStyle = fx.type === 'win' ? '#00b894' : '#d63031'
+      ctx.fillText(fx.type === 'win' ? '恭喜通关！' : '游戏结束', 0, 0)
+      ctx.restore()
 
-      // 按钮
-      const btnW = dlgW * 0.35
-      const btnH = dlgH * 0.28
-      const btnY = dlgY + dlgH * 0.62
-      const btnR = 8
-      const btnFont = Math.round(width * 0.035)
+      // 副标题（通关显示用时）
+      if (fx.type === 'win' && textT > 0.5) {
+        const subAlpha = (textT - 0.5) / 0.5
+        ctx.globalAlpha = subAlpha
+        const subFont = Math.round(width * END_FX_SUB_FONT)
+        ctx.font = subFont + 'px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText('用时 ' + fx.clearTime.toFixed(1) + ' 秒', width / 2, height * END_FX_TITLE_Y + titleFont * END_FX_SUB_OFFSET)
+      }
 
-      // 继续游戏按钮
-      const cancelX = dlgX + dlgW * 0.12
-      ctx.fillStyle = '#e0e0e0'
-      ctx.beginPath()
-      ctx.moveTo(cancelX + btnR, btnY)
-      ctx.arcTo(cancelX + btnW, btnY, cancelX + btnW, btnY + btnH, btnR)
-      ctx.arcTo(cancelX + btnW, btnY + btnH, cancelX, btnY + btnH, btnR)
-      ctx.arcTo(cancelX, btnY + btnH, cancelX, btnY, btnR)
-      ctx.arcTo(cancelX, btnY, cancelX + btnW, btnY, btnR)
-      ctx.closePath()
-      ctx.fill()
-      ctx.fillStyle = '#333'
-      ctx.font = btnFont + 'px sans-serif'
-      ctx.fillText('继续游戏', cancelX + btnW / 2, btnY + btnH / 2)
+      ctx.restore()
+    }
 
-      // 确认退出按钮
-      const confirmX = dlgX + dlgW * 0.53
-      ctx.fillStyle = '#ff6b6b'
-      ctx.beginPath()
-      ctx.moveTo(confirmX + btnR, btnY)
-      ctx.arcTo(confirmX + btnW, btnY, confirmX + btnW, btnY + btnH, btnR)
-      ctx.arcTo(confirmX + btnW, btnY + btnH, confirmX, btnY + btnH, btnR)
-      ctx.arcTo(confirmX, btnY + btnH, confirmX, btnY, btnR)
-      ctx.arcTo(confirmX, btnY, confirmX + btnW, btnY, btnR)
-      ctx.closePath()
-      ctx.fill()
-      ctx.fillStyle = '#ffffff'
-      ctx.fillText('确认退出', confirmX + btnW / 2, btnY + btnH / 2)
+    // 弹窗（确认 / 复活，统一由 dialogs 模块绘制）
+    if (this.dialog) {
+      dialogs.renderDialog(ctx, { width, height }, this.dialog)
     }
   }
 }

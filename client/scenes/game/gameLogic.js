@@ -68,13 +68,11 @@ function checkMatch(slots) {
  * @param {Array}  cards    - 所有卡牌
  * @param {Array}  slots    - 当前槽位
  * @param {number} maxSlots - 最大槽位数
- * @param {Array}  [stash]  - 暂存区卡牌
  * @returns {{ gameOver: boolean, gameWin: boolean }}
  */
-function checkResult(cards, slots, maxSlots, stash) {
+function checkResult(cards, slots, maxSlots) {
   const gameOver = slots.length >= maxSlots
-  const hasStash = stash && stash.length > 0
-  const gameWin = cards.every(c => c.removed) && !hasStash
+  const gameWin = cards.every(c => c.removed)
   return { gameOver, gameWin }
 }
 

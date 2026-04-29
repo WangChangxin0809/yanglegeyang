@@ -22,7 +22,7 @@ const peek = require('./peek')
 const PROPS = [moveOut, undo, shuffle, peek]
 
 // 默认次数：移出/撤回/洗牌/透视
-const DEFAULT_LIMITS = [1, 1, 1, 1]
+const DEFAULT_LIMITS = [3, 3, 3, 3]
 
 // 当前剩余次数
 let counts = DEFAULT_LIMITS.slice()
@@ -44,10 +44,17 @@ function getCount(index) {
   return counts[index] == null ? 0 : counts[index]
 }
 
+/** 给指定道具增加次数 */
+function addCount(index, amount) {
+  if (index >= 0 && index < PROPS.length) {
+    counts[index] = (counts[index] || 0) + (amount || 1)
+  }
+}
+
 /**
  * 使用指定道具
  * @param {number} index - 道具索引 0/1/2/3
- * @param {Object} state - 游戏状态 { cards, slots, history, stash }
+ * @param {Object} state - 游戏状态 { cards, slots, history }
  * @returns {boolean|string} true=成功，'peek'=进入透视选择模式，字符串=失败原因
  */
 function use(index, state) {
@@ -65,4 +72,4 @@ function use(index, state) {
   return result
 }
 
-module.exports = { use, init, getCount }
+module.exports = { use, init, getCount, addCount }

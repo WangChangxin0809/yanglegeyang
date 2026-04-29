@@ -9,7 +9,7 @@
  */
 
 /**
- * @param {Object} state - { cards, slots, stash }
+ * @param {Object} state - { cards, slots }
  * @returns {boolean|string} 'peek'=进入透视模式，字符串=失败原因
  */
 function use(state) {
