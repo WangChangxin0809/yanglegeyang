@@ -16,7 +16,7 @@ function shuffleArray(arr) {
 }
 
 /**
- * @param {Object} state - { cards, slots, stash }
+ * @param {Object} state - { cards, slots }
  * @returns {boolean|string} true=成功，字符串=失败原因
  */
 function use(state) {

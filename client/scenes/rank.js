@@ -1,5 +1,6 @@
 const Scene = require('./base')
 const { get } = require('../utils/request')
+const { getImageUrl } = require('../utils/assets')
 
 /**
  * 排行榜场景
@@ -32,6 +33,21 @@ class RankScene extends Scene {
     this.onBack = null
     // 头像图片缓存：avatar_url -> Image
     this.avatarCache = {}
+    // 前三名奖牌图片（rank 1/2/3）
+    this.medalImages = [null, null, null]
+    this._loadMedals()
+  }
+
+  /** 预加载前三名奖牌图片 */
+  _loadMedals() {
+    const names = ['first.png', 'second.png', 'third.png']
+    names.forEach((name, idx) => {
+      const img = wx.createImage()
+      img.onload = () => {}
+      img.onerror = () => { this.medalImages[idx] = null }
+      img.src = getImageUrl('rank/medals/' + name)
+      this.medalImages[idx] = img
+    })
   }
 
   onEnter() {
@@ -246,20 +262,31 @@ class RankScene extends Scene {
         const rowCy = ry + rowH / 2
 
         if (item.rank <= 3) {
-          // 前三名金银铜
-          const medals = ['#FFD700', '#C0C0C0', '#CD7F32']
-          ctx.fillStyle = medals[item.rank - 1]
-          ctx.beginPath()
-          ctx.arc(rankCx, rowCy, rankFont * 0.55, 0, Math.PI * 2)
-          ctx.fill()
-          ctx.fillStyle = '#1a1a2e'
+          // 前三名：优先使用奖牌图片，未加载完成则回退到金银铜圆圈
+          const medalImg = this.medalImages[item.rank - 1]
+          const medalReady = medalImg && medalImg.width > 0
+          if (medalReady) {
+            const medalSize = rankFont * 1.6
+            ctx.drawImage(medalImg, rankCx - medalSize / 2, rowCy - medalSize / 2, medalSize, medalSize)
+          } else {
+            const medals = ['#FFD700', '#C0C0C0', '#CD7F32']
+            ctx.fillStyle = medals[item.rank - 1]
+            ctx.beginPath()
+            ctx.arc(rankCx, rowCy, rankFont * 0.55, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.fillStyle = '#1a1a2e'
+            ctx.font = 'bold ' + rankFont + 'px sans-serif'
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillText(item.rank, rankCx, rowCy)
+          }
         } else {
           ctx.fillStyle = '#888888'
+          ctx.font = 'bold ' + rankFont + 'px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(item.rank, rankCx, rowCy)
         }
-        ctx.font = 'bold ' + rankFont + 'px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(item.rank, rankCx, rowCy)
 
         // 头像：有 avatar_url 且图片已加载完 → 用真实头像；否则回退到昵称首字占位
         const avatarX = padX + rankFont * 1.5

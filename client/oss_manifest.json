@@ -18,6 +18,7 @@
   "game/cards/animals/7.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/game/cards/animals/7.png",
   "game/cards/animals/8.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/game/cards/animals/8.png",
   "game/cards/animals/9.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/game/cards/animals/9.png",
+  "game/cards/slots.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/game/cards/slots.png",
   "game/props/moveOut.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/game/props/moveOut.png",
   "game/props/peek.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/game/props/peek.png",
   "game/props/shuffle.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/game/props/shuffle.png",
@@ -25,8 +26,12 @@
   "loading/bgs/loading_bg01.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/loading/bgs/loading_bg01.png",
   "loading/titles/title.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/loading/titles/title.png",
   "menu/bgs/menu_bg01.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/menu/bgs/menu_bg01.png",
+  "menu/buttons/button_rank.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/menu/buttons/button_rank.png",
   "menu/buttons/button_start.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/menu/buttons/button_start.png",
   "menu/elements/animal_left.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/menu/elements/animal_left.png",
   "menu/elements/animal_right.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/menu/elements/animal_right.png",
-  "menu/titles/title.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/menu/titles/title.png"
+  "menu/titles/title.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/menu/titles/title.png",
+  "rank/medals/first.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/rank/medals/first.png",
+  "rank/medals/second.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/rank/medals/second.png",
+  "rank/medals/third.png": "https://yanglegeyang-assets.oss-cn-shanghai.aliyuncs.com/v1/images/rank/medals/third.png"
 }

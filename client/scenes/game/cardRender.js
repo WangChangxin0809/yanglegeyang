@@ -19,17 +19,10 @@ const CARD_ICON_PAD    = 0.07   // 卡牌图标内边距 = 卡牌尺寸 × 7%
 const CARD_FONT_SCALE  = 0.45   // 卡牌文字字号 = 卡牌尺寸 × 45%
 const CARD_BLOCKED_THR = 0.1    // 遮挡判定阈值 = 重叠面积 ÷ 卡牌面积
 
-// 暂存区（移出道具）
-const STASH_TOP        = 0.76   // 暂存区顶部 = 屏幕高度 × 76%
-const STASH_SIZE_SCALE = 0.09   // 暂存卡牌尺寸 = 屏幕宽度 × 9%
-const STASH_GAP_SCALE  = 0.015  // 暂存卡牌间距 = 屏幕宽度 × 1.5%
-const STASH_PAD_SCALE  = 0.015  // 暂存背景内边距
-const STASH_ICON_PAD   = 0.06   // 暂存卡牌图标内边距
-
 // 槽位区
 const SLOT_TOP         = 0.82   // 槽位区顶部 = 屏幕高度 × 82%
 const SLOT_SIZE_SCALE  = 0.11   // 槽位卡牌尺寸 = 屏幕宽度 × 11%
-const SLOT_GAP_SCALE   = 0.015  // 槽位间距   = 屏幕宽度 × 1.5%
+const SLOT_GAP_SCALE   = 0.014  // 槽位间距   = 屏幕宽度 × 1.5%
 const SLOT_PAD_SCALE   = 0.02   // 槽位背景内边距 = 屏幕宽度 × 2%
 const SLOT_ICON_PAD    = 0.06   // 槽位图标内边距 = 槽位尺寸 × 6%
 const SLOT_FONT_SCALE  = 0.45   // 槽位文字字号 = 槽位尺寸 × 45%
@@ -52,6 +45,9 @@ const ICON_IMGS = {}  // { '1': Image, '2': Image, ... }
 const PROP_IMG_NAMES = ['moveOut', 'undo', 'shuffle', 'peek']
 const PROP_IMGS = []
 
+// 卡槽整体底图（含 7 个槽位）
+let SLOTS_IMG = null
+
 /** 预加载所有卡牌图片 + 道具图片 */
 function preloadImages() {
   for (let i = 1; i <= ICON_COUNT; i++) {
@@ -64,6 +60,11 @@ function preloadImages() {
     img.src = getImageUrl('game/props/' + PROP_IMG_NAMES[i] + '.png')
     img.onload = ((idx) => () => { PROP_IMGS[idx] = img })(i)
   }
+  // 卡槽底图
+  const slotsImg = wx.createImage()
+  slotsImg.src = getImageUrl('game/cards/slots.png')
+  slotsImg.onload = () => { SLOTS_IMG = slotsImg }
+  slotsImg.onerror = () => { SLOTS_IMG = null }
 }
 
 /** 洗牌（Fisher-Yates） */
@@ -297,20 +298,55 @@ function renderSlots(ctx, slots, config) {
   const slotStartX = (width - totalSlotWidth) / 2
   const slotY = Math.round(height * SLOT_TOP)
 
-  // 槽位背景
-  ctx.fillStyle = 'rgba(0,0,0,0.5)'
-  ctx.fillRect(slotStartX - padding, slotY - padding,
-    totalSlotWidth + padding * 2, slotSize + padding * 2)
+  // 槽位背景：优先使用整图 slots.png，未加载完成则回退到黑底+7个灰方格
+  const bgX = slotStartX - padding
+  const bgY = slotY - padding
+  const bgW = totalSlotWidth + padding * 2
+  const bgH = slotSize + padding * 2
 
-  // 画空槽位
-  for (let i = 0; i < maxSlots; i++) {
-    const sx = slotStartX + i * (slotSize + slotGap)
-    ctx.fillStyle = '#44555566'
-    ctx.fillRect(sx, slotY, slotSize, slotSize)
-    ctx.strokeStyle = '#ffffff33'
-    ctx.lineWidth = 1
-    ctx.strokeRect(sx, slotY, slotSize, slotSize)
+  if (SLOTS_IMG && SLOTS_IMG.width > 0) {
+    ctx.drawImage(SLOTS_IMG, bgX, bgY, bgW, bgH)
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'
+    ctx.fillRect(bgX, bgY, bgW, bgH)
+
+    // 画空槽位
+    for (let i = 0; i < maxSlots; i++) {
+      const sx = slotStartX + i * (slotSize + slotGap)
+      ctx.fillStyle = '#44555566'
+      ctx.fillRect(sx, slotY, slotSize, slotSize)
+      ctx.strokeStyle = '#ffffff33'
+      ctx.lineWidth = 1
+      ctx.strokeRect(sx, slotY, slotSize, slotSize)
+    }
   }
+
+  // 卡槽外框（圆角金色边框，图片/回退模式都叠加）
+  const borderPad = Math.max(2, Math.round(padding * 0.3))
+  const bX = bgX - borderPad
+  const bY = bgY - borderPad
+  const bW = bgW + borderPad * 2
+  const bH = bgH + borderPad * 2
+  const borderR = Math.max(6, Math.round(slotSize * 0.18))
+  ctx.save()
+  // 外阴影
+  ctx.shadowColor = 'rgba(0,0,0,0.35)'
+  ctx.shadowBlur = 6
+  ctx.shadowOffsetY = 2
+  // 内填半透明黑底，加强层次（不影响图片可见性，其已绘制）
+  ctx.strokeStyle = '#c8a96e'
+  ctx.lineWidth = 3
+  roundRect(ctx, bX, bY, bW, bH, borderR)
+  ctx.stroke()
+  ctx.restore()
+
+  // 内侧细高光线，增加立体感
+  ctx.save()
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+  ctx.lineWidth = 1
+  roundRect(ctx, bX + 2, bY + 2, bW - 4, bH - 4, Math.max(4, borderR - 2))
+  ctx.stroke()
+  ctx.restore()
 
   // 画已放入的卡牌
   for (let i = 0; i < slots.length; i++) {
@@ -466,83 +502,6 @@ function getPropPosition(index, config) {
   }
 }
 
-// ==================== 暂存区 ====================
-
-/**
- * 渲染暂存区（移出道具将槽位卡牌移到此处）
- * @param {CanvasRenderingContext2D} ctx
- * @param {Array}  stash  - 暂存卡牌数据
- * @param {Object} config - { width, height }
- */
-function renderStash(ctx, stash, config) {
-  if (!stash || stash.length === 0) return
-
-  const { width, height } = config
-  const cardSize = Math.round(width * STASH_SIZE_SCALE)
-  const gap = Math.round(width * STASH_GAP_SCALE)
-  const padding = Math.round(width * STASH_PAD_SCALE)
-  const topY = Math.round(height * STASH_TOP)
-
-  const totalW = stash.length * (cardSize + gap) - gap
-  const startX = (width - totalW) / 2
-
-  // 暂存区背景
-  ctx.fillStyle = 'rgba(0,0,0,0.35)'
-  roundRect(ctx, startX - padding, topY - padding,
-    totalW + padding * 2, cardSize + padding * 2, 6)
-  ctx.fill()
-
-  // 绘制暂存卡牌
-  for (let i = 0; i < stash.length; i++) {
-    const sx = startX + i * (cardSize + gap)
-    ctx.fillStyle = '#fffdf5'
-    roundRect(ctx, sx, topY, cardSize, cardSize, 4)
-    ctx.fill()
-    ctx.strokeStyle = '#c8a96e'
-    ctx.lineWidth = 1
-    roundRect(ctx, sx, topY, cardSize, cardSize, 4)
-    ctx.stroke()
-
-    const iconImg = ICON_IMGS[stash[i].icon]
-    if (iconImg) {
-      const pad = cardSize * STASH_ICON_PAD
-      ctx.save()
-      roundRect(ctx, sx, topY, cardSize, cardSize, 4)
-      ctx.clip()
-      ctx.drawImage(iconImg, sx + pad, topY + pad, cardSize - pad * 2, cardSize - pad * 2)
-      ctx.restore()
-    } else {
-      const fontSize = Math.round(cardSize * 0.45)
-      ctx.font = fontSize + 'px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillStyle = '#000000'
-      ctx.fillText(stash[i].icon, sx + cardSize / 2, topY + cardSize / 2)
-    }
-  }
-}
-
-/**
- * 获取暂存区卡牌的位置信息（用于点击检测）
- * @param {number} index      - 卡牌索引
- * @param {number} stashCount - 暂存区卡牌总数
- * @param {Object} config     - { width, height }
- * @returns {{ x, y, size }}
- */
-function getStashPosition(index, stashCount, config) {
-  const { width, height } = config
-  const cardSize = Math.round(width * STASH_SIZE_SCALE)
-  const gap = Math.round(width * STASH_GAP_SCALE)
-  const topY = Math.round(height * STASH_TOP)
-  const totalW = stashCount * (cardSize + gap) - gap
-  const startX = (width - totalW) / 2
-  return {
-    x: startX + index * (cardSize + gap),
-    y: topY,
-    size: cardSize
-  }
-}
-
 module.exports = {
   preloadImages,
   generateCards,
@@ -552,7 +511,5 @@ module.exports = {
   getSlotPosition,
   getIconImg,
   renderProps,
-  getPropPosition,
-  renderStash,
-  getStashPosition
+  getPropPosition
 }
