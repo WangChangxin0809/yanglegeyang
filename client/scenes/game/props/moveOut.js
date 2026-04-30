@@ -22,7 +22,7 @@ const CARD_SIZE_SCALE = 0.12
  * @returns {boolean|string} true=成功，字符串=失败原因
  */
 function use(state) {
-  const { cards, slots, width, height } = state
+  const { cards, slots, history, width, height } = state
 
   // 槽位为空，无牌可移
   if (!slots || slots.length === 0) {
@@ -70,6 +70,14 @@ function use(state) {
   }
 
   console.log('[道具] 移出成功，移出 ' + count + ' 张到棋盘下方')
+
+  // 清空撤回历史：moveOut 从槽位取出卡牌后，之前记录的「卡牌→槽位」历史已失效，
+  // 再 undo 会找不到/找错槽位卡牌，导致状态紊乱
+  if (history && history.length > 0) {
+    history.length = 0
+    console.log('[道具] 移出：已清空撤回历史')
+  }
+
   return true
 }
 

@@ -311,12 +311,12 @@ class GameScene extends Scene {
       const clearTime = (Date.now() - this.levelStartTime) / 1000
       this._showWinDialog(clearTime, hasNext)
     } else if (!wasOver && this.gameOver) {
-      playSfx('defeat')
       if (!this.revived) {
-        // 未复活过：弹出复活弹窗
+        // 未复活过：弹出复活弹窗，不播放失败音效/特效，待用户选择后再决定
         this._showReviveDialog()
       } else {
-        // 已复活过：播放失败特效后返回主菜单
+        // 已复活过：播放失败音效 + 失败特效后返回主菜单
+        playSfx('defeat')
         this._startEndFx('lose', () => {
           if (this.onBack) this.onBack()
         })
@@ -436,7 +436,11 @@ class GameScene extends Scene {
         doRevive()
       },
       onCancel: () => {
-        if (this.onBack) this.onBack()
+        // 放弃复活 → 真正进入失败流程：音效 + 失败特效 → 返回主菜单
+        playSfx('defeat')
+        this._startEndFx('lose', () => {
+          if (this.onBack) this.onBack()
+        })
       },
     }
   }
