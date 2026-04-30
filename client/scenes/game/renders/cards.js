@@ -82,8 +82,8 @@ function renderCards(ctx, cards, peekCards, peekTimer) {
     roundRect(ctx, card.x + 1, card.y + depth, card.width, card.height, radius)
     ctx.fill()
 
-    // 卡牌正面底色
-    ctx.fillStyle = blocked ? '#636e72' : '#fffdf5'
+    // 卡牌正面底色（blocked：黄白色；正常：米白）
+    ctx.fillStyle = blocked ? '#d2cdb6ff' : '#fffdf5'
     roundRect(ctx, card.x, card.y, card.width, card.height, radius)
     ctx.fill()
 

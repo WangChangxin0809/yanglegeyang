@@ -1,12 +1,11 @@
 require('./global')
 
 const LoadingScene = require('./scenes/loading')
-// 微信授权登录申请通过前，暂时隐匿 AuthScene，采用静默 wx.login 方案
-// const AuthScene = require('./scenes/auth')
+const AuthScene = require('./scenes/auth')
 const MenuScene = require('./scenes/menu')
 const GameScene = require('./scenes/game')
 const RankScene = require('./scenes/rank')
-const { restoreAuth, login } = require('./utils/request')
+const { restoreAuth } = require('./utils/request')
 const { pauseBgm, resumeBgm } = require('./utils/audio')
 
 // 初始化画布
@@ -39,7 +38,7 @@ function switchScene(scene) {
 
 // 创建场景实例
 const loadingScene = new LoadingScene()
-// const authScene = new AuthScene()  // 隐匿微信用户信息授权场景（待申请通过后恢复）
+const authScene = new AuthScene()
 const menuScene = new MenuScene()
 const gameScene = new GameScene()
 const rankScene = new RankScene()
@@ -47,27 +46,21 @@ const rankScene = new RankScene()
 // 启动时先尝试从本地 storage 恢复 token/userInfo
 restoreAuth()
 
-// 简化授权期：仅判断是否已有 token（后端会分配默认昵称 "玩家{id}"）
-function hasToken() {
-  return !!GameGlobal.token
+// 判断本地是否已有 token 且有用户昵称/头像（授权完成的标志）
+function isAuthorized() {
+  const info = GameGlobal.userInfo
+  return !!GameGlobal.token && !!info && !!info.nickname && !!info.avatar_url
 }
 
 // 场景跳转链接
 loadingScene.onComplete = () => {
-  if (hasToken()) {
+  if (isAuthorized()) {
     switchScene(menuScene)
-    return
+  } else {
+    switchScene(authScene)
   }
-  // 无 token：静默调用 wx.login 换取 token，后端自动建号并返回默认昵称
-  // 微信用户信息授权申请通过后，改回原方案：未授权 → switchScene(authScene)
-  login()
-    .then(() => switchScene(menuScene))
-    .catch((err) => {
-      console.warn('[auth] 静默登录失败，仍进入菜单', err)
-      switchScene(menuScene)
-    })
 }
-// authScene.onComplete = () => switchScene(menuScene)  // 恢复授权场景时启用
+authScene.onComplete = () => switchScene(menuScene)
 menuScene.onStartGame = () => switchScene(gameScene)
 menuScene.onRank = () => switchScene(rankScene)
 gameScene.onBack = () => switchScene(menuScene)

@@ -86,6 +86,10 @@ class GameScene extends Scene {
         const cb = this.dialog.onCancel
         this.dialog = null
         cb && cb()
+      } else if (hit === 'share') {
+        // 分享按钮：不关闭弹窗，由回调处理
+        const cb = this.dialog.onShare
+        cb && cb()
       }
       // outside / null：点击弹窗外或弹窗内空白，不做任何操作
       return
@@ -113,6 +117,9 @@ class GameScene extends Scene {
         if (result === 'peek') {
           this.peekMode = true
           this._showToast('请点击一张顶层卡牌')
+        } else if (result === 'share') {
+          // 道具次数为 0 且未分享过 → 弹出分享解锁弹窗
+          this._showPropShareDialog(i)
         } else if (typeof result === 'string') {
           this._showToast(result)
         }
@@ -301,14 +308,8 @@ class GameScene extends Scene {
     if (!wasOver && this.gameWin) {
       playSfx('success')
       const hasNext = this.level < LEVELS.length
-      this._startEndFx('win', () => {
-        if (hasNext) {
-          this.level++
-          this._startLevel()
-        } else {
-          if (this.onBack) this.onBack()
-        }
-      })
+      const clearTime = (Date.now() - this.levelStartTime) / 1000
+      this._showWinDialog(clearTime, hasNext)
     } else if (!wasOver && this.gameOver) {
       playSfx('defeat')
       if (!this.revived) {
@@ -320,6 +321,34 @@ class GameScene extends Scene {
           if (this.onBack) this.onBack()
         })
       }
+    }
+  }
+
+  /** 弹出胜利弹窗（通关后的交互入口） */
+  _showWinDialog(clearTime, hasNext) {
+    const level = this.level
+    this.dialog = {
+      type: 'win',
+      clearTime: clearTime,
+      hasNext: hasNext,
+      onConfirm: () => {
+        // 有下一关：进入下一关；最后一关：返回菜单
+        if (hasNext) {
+          this.level++
+          this._startLevel()
+        } else {
+          if (this.onBack) this.onBack()
+        }
+      },
+      onShare: () => {
+        // 调起微信分享卡片（用户自行选择好友/群）
+        if (typeof wx.shareAppMessage === 'function') {
+          wx.shareAppMessage({
+            title: '我在牛马日记通关了第 ' + level + ' 关，用时 ' + clearTime.toFixed(1) + ' 秒，来挑战吧！',
+            query: 'level=' + level,
+          })
+        }
+      },
     }
   }
 
@@ -353,21 +382,58 @@ class GameScene extends Scene {
     }
   }
 
+  /** 弹出道具分享解锁弹窗（询问是否分享获得 1 次使用机会） */
+  _showPropShareDialog(propIndex) {
+    const PROP_NAMES = ['移出', '撤回', '洗牌', '透视']
+    const name = PROP_NAMES[propIndex] || '道具'
+    this.dialog = {
+      type: 'propShare',
+      propIndex: propIndex,
+      propName: name,
+      onShare: () => {
+        // 调起微信分享卡片（微信不保证分享成功回调，调起即视为达成）
+        if (typeof wx.shareAppMessage === 'function') {
+          wx.shareAppMessage({
+            title: '牛马日记太难了，帮我赢得「' + name + '」道具吧！',
+            query: 'level=' + this.level,
+          })
+        }
+        // 标记已分享解锁并增加 1 次使用机会，随后关闭弹窗
+        props.markShared(propIndex, 1)
+        this.dialog = null
+        this._showToast('「' + name + '」道具 +1')
+      },
+      // onCancel 可省：点击取消/弹窗外会被 onTouchStart 统一关闭
+    }
+  }
+
   /** 弹出复活弹窗 */
   _showReviveDialog() {
+    const doRevive = () => {
+      // 复活：执行一次 moveOut，从槽位取牌放到棋盘下方
+      this.revived = true
+      this.gameOver = false
+
+      // 给 moveOut(0) 加 1 次
+      props.addCount(0, 1)
+
+      // 执行 moveOut
+      const state = { cards: this.cards, slots: this.slots, history: this.history, width: this.width, height: this.height }
+      props.use(0, state)
+    }
     this.dialog = {
       type: 'revive',
-      onConfirm: () => {
-        // 复活：执行一次 moveOut，从槽位取牌放到棋盘下方
-        this.revived = true
-        this.gameOver = false
-
-        // 给 moveOut(0) 加 1 次
-        props.addCount(0, 1)
-
-        // 执行 moveOut
-        const state = { cards: this.cards, slots: this.slots, history: this.history, width: this.width, height: this.height }
-        props.use(0, state)
+      onShare: () => {
+        // 调起微信分享卡片（微信不保证分享成功回调，调起即视为达成）
+        if (typeof wx.shareAppMessage === 'function') {
+          wx.shareAppMessage({
+            title: '我在牛马日记第 ' + this.level + ' 关撑不住了，来试试看你行不行！',
+            query: 'level=' + this.level,
+          })
+        }
+        // 执行复活并关闭弹窗
+        this.dialog = null
+        doRevive()
       },
       onCancel: () => {
         if (this.onBack) this.onBack()
@@ -479,7 +545,7 @@ class GameScene extends Scene {
     // 结算全屏特效
     renders.endFx.render(ctx, cfg, this.endFx)
 
-    // 弹窗（确认 / 复活，统一由 dialogs 模块绘制）
+    // 弹窗（确认 / 复活 / 胜利 / 道具分享解锁，统一由 dialogs 模块绘制）
     if (this.dialog) {
       dialogs.renderDialog(ctx, cfg, this.dialog)
     }
