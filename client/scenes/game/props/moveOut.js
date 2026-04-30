@@ -10,8 +10,9 @@
 const MOVE_MAX = 3
 
 // 移出区位置参数（相对屏幕比例）
-const MOVEOUT_Y      = 0.68   // 移出区 y = 屏幕高度 × 68%（棋盘底部 0.65 下方）
+const MOVEOUT_Y      = 0.68   // 移出区起始 y = 屏幕高度 × 68%（棋盘底部 0.65 下方）
 const MOVEOUT_GAP    = 0.15   // 卡牌间距 = 卡牌尺寸 × 15%
+const MOVEOUT_ROW_STEP = 0.015 // 每次移出后 y 递增 = 屏幕高度 × 3%（多次使用时新行往下叠）
 
 // 卡牌尺寸（与 gameLogic 中 CARD_SIZE_SCALE 保持一致）
 const CARD_SIZE_SCALE = 0.12
@@ -34,7 +35,19 @@ function use(state) {
   const gap = Math.round(size * MOVEOUT_GAP)
   const totalW = count * (size + gap) - gap
   const startX = (width - totalW) / 2
-  const posY = Math.round(height * MOVEOUT_Y)
+  const baseY = Math.round(height * MOVEOUT_Y)
+  const rowStep = Math.round(height * MOVEOUT_ROW_STEP)
+
+  // 扫描棋盘上已有的「移出区卡牌」（y >= baseY 且未被消除），
+  // 以最底行为参照，下一行再往下 rowStep。这样每次调用都会堆叠出新一行。
+  let maxExistY = -1
+  for (const c of cards) {
+    if (!c.removed && c.y >= baseY && c.y > maxExistY) maxExistY = c.y
+  }
+  let posY = maxExistY >= 0 ? maxExistY + rowStep : baseY
+  // 保底：不超出屏幕底部
+  const maxY = height - size
+  if (posY > maxY) posY = maxY
 
   // 找当前最大 layer，移出卡牌放最高层（不被遮挡）
   let maxLayer = 0

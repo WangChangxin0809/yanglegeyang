@@ -27,6 +27,9 @@ const DEFAULT_LIMITS = [3, 3, 3, 3]
 // 当前剩余次数
 let counts = DEFAULT_LIMITS.slice()
 
+// 记录每个道具是否已通过分享增加过次数（关卡内有效）
+let shared = PROPS.map(() => false)
+
 /**
  * 重置各道具次数
  * @param {number[]} [limits] - 可选，自定义 4 个道具的次数；缺省用默认值
@@ -37,6 +40,8 @@ function init(limits) {
   } else {
     counts = DEFAULT_LIMITS.slice()
   }
+  // 关卡重置时同步清空分享记录
+  shared = PROPS.map(() => false)
 }
 
 /** 获取指定道具剩余次数 */
@@ -51,6 +56,32 @@ function addCount(index, amount) {
   }
 }
 
+/** 查询某道具是否可通过分享解锁（次数为0且未分享过） */
+function canShare(index) {
+  if (index < 0 || index >= PROPS.length) return false
+  return getCount(index) <= 0 && !shared[index]
+}
+
+/** 查询某道具是否已经分享解锁过 */
+function hasShared(index) {
+  if (index < 0 || index >= PROPS.length) return false
+  return !!shared[index]
+}
+
+/**
+ * 标记某道具已通过分享解锁（应在分享成功回调中调用）
+ * @param {number} index - 道具索引
+ * @param {number} [amount=1] - 解锁后增加的次数
+ */
+function markShared(index, amount) {
+  if (index < 0 || index >= PROPS.length) return false
+  if (shared[index]) return false
+  shared[index] = true
+  addCount(index, amount || 1)
+  console.log('[道具] 分享解锁: index=' + index + ' 剩余=' + counts[index])
+  return true
+}
+
 /**
  * 使用指定道具
  * @param {number} index - 道具索引 0/1/2/3
@@ -60,6 +91,11 @@ function addCount(index, amount) {
 function use(index, state) {
   if (index < 0 || index >= PROPS.length) return '无效道具'
   if (counts[index] <= 0) {
+    // 次数为 0 时，如果该道具尚未分享过，则触发分享解锁流程
+    if (!shared[index]) {
+      console.log('[道具] 次数为0，触发分享解锁: index=' + index)
+      return 'share'
+    }
     console.log('[道具] 次数已用完: index=' + index)
     return '次数已用完'
   }
@@ -72,4 +108,4 @@ function use(index, state) {
   return result
 }
 
-module.exports = { use, init, getCount, addCount }
+module.exports = { use, init, getCount, addCount, canShare, hasShared, markShared }

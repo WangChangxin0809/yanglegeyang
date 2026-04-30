@@ -202,6 +202,43 @@ function stopAllSfx() {
   }
 }
 
+/**
+ * 预热所有 SFX（在 loading 场景调用）
+ *
+ * 对每个 key 预先创建 InnerAudioContext 并设 src，微信会启动 CDN 后台下载。
+ * 返回 Promise，resolve 时所有音效 canplay 或触发 error （视为加载完毕），
+ * 供 loading 进度条计数。
+ *
+ * @param {(key: string) => void} [onEach]  每加载完成一项回调（成功或失败都算）
+ * @returns {Promise<number>}  resolve 成功加载的音效数
+ */
+function preloadSfx(onEach) {
+  const keys = Object.keys(SFX_KEYS)
+  if (keys.length === 0) return Promise.resolve(0)
+  let succeed = 0
+  return new Promise((resolve) => {
+    let remain = keys.length
+    keys.forEach((key) => {
+      const relPath = SFX_KEYS[key]
+      const ctx = wx.createInnerAudioContext()
+      ctx.src = getAudioUrl(relPath)
+      ctx.volume = 0.6
+      _sfxCache[key] = ctx
+      const done = (ok) => {
+        if (ok) succeed++
+        if (onEach) { try { onEach(key) } catch (e) {} }
+        remain--
+        if (remain <= 0) resolve(succeed)
+      }
+      ctx.onCanplay(() => done(true))
+      ctx.onError((err) => {
+        console.warn('[sfx] 预加载失败:', key, err)
+        done(false)
+      })
+    })
+  })
+}
+
 module.exports = {
   getAudioUrl,
   playBgm,
@@ -212,6 +249,7 @@ module.exports = {
   currentBgm,
   playSfx,
   stopAllSfx,
+  preloadSfx,
   USE_REMOTE_AUDIO,
   BGM_GROUPS,
   SFX_KEYS,

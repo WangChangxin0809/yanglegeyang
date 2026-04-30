@@ -4,8 +4,10 @@
  * 根据 dialog.type 自动分发到对应子模块的 render / hit。
  *
  * 支持的 type：
- *   'confirm' - 确认弹窗（退出、二次确认）
- *   'revive'  - 复活弹窗
+ *   'confirm'    - 确认弹窗（退出、二次确认）
+ *   'revive'     - 复活弹窗
+ *   'win'        - 胜利弹窗（通关用时 + 下一关/返回菜单）
+ *   'propShare'  - 道具分享解锁弹窗（次数为0时询问是否分享获得使用次数）
  *
  * 用法：
  *   const dialogs = require('./dialogs')
@@ -15,10 +17,14 @@
 
 const confirm = require('./confirm')
 const revive = require('./revive')
+const win = require('./win')
+const propShare = require('./propShare')
 
 const MODULES = {
   confirm: confirm,
   revive: revive,
+  win: win,
+  propShare: propShare,
 }
 
 /**
@@ -48,10 +54,10 @@ function renderDialog(ctx, config, dialog) {
 function hitDialog(x, y, config, dialog) {
   const mod = MODULES[dialog.type]
   if (mod) {
-    return mod.hit(x, y, config)
+    return mod.hit(x, y, config, dialog)
   }
   // 兼容：无 type 时走 confirm
-  return confirm.hit(x, y, config)
+  return confirm.hit(x, y, config, dialog)
 }
 
 module.exports = { renderDialog, hitDialog }

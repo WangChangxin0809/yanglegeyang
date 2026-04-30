@@ -1,5 +1,6 @@
 const Scene = require('./base')
 const { getImageUrl } = require('../utils/assets')
+const { preloadSfx } = require('../utils/audio')
 
 /**
  * 加载场景
@@ -35,29 +36,49 @@ class LoadingScene extends Scene {
   }
 
   _loadResources() {
-    // 预加载全部图片资源：菜单 + 游戏背景 + 18 张卡面
+    // 预加载全部图片资源：菜单 + 游戏 + 道具 + 弹窗 + 排行榜
     // 加载后微信会自动缓存到本地临时目录，后续场景直接使用缓存，避免首次显示时的空白/闪烁
     const images = [
       // 菜单场景
       getImageUrl('menu/bgs/menu_bg01.png'),
       getImageUrl('menu/buttons/button_start.png'),
+      getImageUrl('menu/buttons/button_rank.png'),
       getImageUrl('menu/titles/title.png'),
       getImageUrl('menu/elements/animal_left.png'),
       getImageUrl('menu/elements/animal_right.png'),
       // 游戏场景
       getImageUrl('game/bgs/game_bg01.png'),
+      getImageUrl('game/cards/slots.png'),
+      // 道具图标
+      getImageUrl('game/props/moveOut.png'),
+      getImageUrl('game/props/peek.png'),
+      getImageUrl('game/props/shuffle.png'),
+      getImageUrl('game/props/undo.png'),
+      // 胜利弹窗背景
+      getImageUrl('game/dialogs/win/bg.png'),
+      // 排行榜奖牌
+      getImageUrl('rank/medals/first.png'),
+      getImageUrl('rank/medals/second.png'),
+      getImageUrl('rank/medals/third.png'),
     ]
     // 18 张动物卡面
     for (let i = 1; i <= 18; i++) {
       images.push(getImageUrl('game/cards/animals/' + i + '.png'))
     }
 
+    // 总任务数 = 图片数 + 音效数（SFX_KEYS 共 4 个，这里硬编码简化，实际用 keys 数更稳）
+    const audioKeys = ['click', 'merge', 'defeat', 'success']
+    const totalCount = images.length + audioKeys.length
     let loadedCount = 0
-    const totalCount = images.length
 
     if (totalCount === 0) {
       this.targetProgress = 100
       return
+    }
+
+    const tick = () => {
+      loadedCount++
+      this.targetProgress = Math.floor((loadedCount / totalCount) * 100)
     }
 
     // 保留 Image 引用，防止被 GC 导致缓存失效
@@ -65,17 +86,16 @@ class LoadingScene extends Scene {
     images.forEach(src => {
       const img = wx.createImage()
       this._preloadImages.push(img)
-      const done = () => {
-        loadedCount++
-        this.targetProgress = Math.floor((loadedCount / totalCount) * 100)
-      }
-      img.onload = done
+      img.onload = tick
       img.onerror = () => {
         console.warn('[loading] 图片加载失败:', src)
-        done()
+        tick()
       }
       img.src = src
     })
+
+    // 预热音效（触发 CDN 下载 + 写入 audio.js 的 _sfxCache，首次 playSfx 即命中）
+    preloadSfx(() => tick())
   }
 
   update(dt) {
