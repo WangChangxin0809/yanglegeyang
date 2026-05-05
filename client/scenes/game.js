@@ -524,6 +524,8 @@ class GameScene extends Scene {
     const levelIdx = Math.min(this.level - 1, LEVELS.length - 1)
     renders.title.render(ctx, cfg, LEVELS[levelIdx].title)
 
+    renders.timer.render(ctx, cfg, this.levelStartTime)
+
     // 卡牌
     renders.cards.renderCards(ctx, this.cards, this.peekCards, this.peekTimer)
 

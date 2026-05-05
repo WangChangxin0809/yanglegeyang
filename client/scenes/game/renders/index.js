@@ -8,6 +8,7 @@
  *   background - 关卡背景
  *   backButton - 左上角返回按钮
  *   title      - 关卡标题
+ *   timer      - 关卡计时器
  *   flyAnim    - 卡牌飞向槽位的动画
  *   matchFx    - 三消闪光特效
  *   particles  - 粒子（爆发/礼花）
@@ -26,6 +27,7 @@ const props = require('./props')
 const background = require('./background')
 const backButton = require('./backButton')
 const title = require('./title')
+const timer = require('./timer')
 const flyAnim = require('./flyAnim')
 const matchFx = require('./matchFx')
 const particles = require('./particles')
@@ -46,6 +48,7 @@ module.exports = {
   props,
   background,
   backButton,
+  timer,
   title,
   flyAnim,
   matchFx,
