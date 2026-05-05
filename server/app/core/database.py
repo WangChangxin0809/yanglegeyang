@@ -7,7 +7,12 @@ from config import get_settings
 
 settings = get_settings()
 
-engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    pool_pre_ping=True,   # 取连接前先 ping，自动丢弃被 MySQL 踢掉的死连接
+    pool_recycle=1800,    # 连接最多用 30 分钟就回收，避免撞上 wait_timeout
+)
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 

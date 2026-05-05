@@ -205,20 +205,33 @@ sfx.play()  // 每次消除时调用
 
 ## 9. 分享
 
-支持分享到好友和群。
+支持分享到好友和群。本项目的分享用在两处：
+1. **道具分享解锁**：关卡内点道具时弹 `dialogs/propShare.js` 弹窗，点"分享获取"按钮调用 `wx.shareAppMessage`，分享成功后道具数量 +1。
+2. **通关分享**：`dialogs/win.js` 通关弹窗内提供分享按钮，把成绩晒给好友。
 
 | API | 说明 | 使用场景 |
 |-----|------|---------|
-| `wx.shareAppMessage()` | 主动分享 | 结算页点击分享按钮 |
-| `wx.onShareAppMessage(cb)` | 监听右上角分享 | 设置分享内容 |
-| `wx.showShareMenu()` | 显示分享菜单 | 启用分享功能 |
+| `wx.shareAppMessage()` | 主动分享（需由按钮点击触发） | 道具分享、通关分享 |
+| `wx.onShareAppMessage(cb)` | 监听右上角菜单分享 | 设置默认分享内容 |
+| `wx.showShareMenu()` | 启用右上角分享菜单 | 游戏启动时调用一次 |
 
-**示例：**
+**默认分享内容（右上角菜单）：**
 ```js
+wx.showShareMenu({ withShareTicket: false })
 wx.onShareAppMessage(() => ({
-  title: '羊了个羊 - 你能过第二关吗？',
+  title: '牛马日记 - 你能打通第几关？',
   imageUrl: 'images/share.png'
 }))
+```
+
+**主动分享（道具/通关弹窗内）：**
+```js
+wx.shareAppMessage({
+  title: '牛马日记 - 帮我点一下就能多一个道具！',
+  imageUrl: 'images/share.png'
+})
+// 小游戏环境下 shareAppMessage 没有 success 回调
+// 采用 wx.onShow 在分享返回后判定分享行为是否完成
 ```
 
 ---
@@ -230,9 +243,25 @@ wx.onShareAppMessage(() => ({
 | API | 说明 | 使用场景 |
 |-----|------|---------|
 | `wx.setMenuStyle()` | 设置菜单按钮样式 | 适配深色/浅色主题 |
-| `wx.showToast()` | 显示提示框 | 操作反馈（如"已保存"） |
-| `wx.showModal()` | 显示确认弹窗 | 退出游戏确认 |
+| `wx.showToast()` | 显示提示框 | 操作反馈（如"分享成功 +1 道具"） |
+| `wx.showModal()` | 显示确认弹窗 | 注：项目内主要用自绘 Canvas 弹窗（`dialogs/confirm.js`）替代，保证视觉风格统一 |
 | `wx.showLoading()` | 显示加载动画 | 网络请求等待时 |
+
+> **注意**：本项目所有游戏内弹窗（确认退出 / 复活 / 通关 / 道具分享）均为自绘 Canvas 弹窗，位于 `client/scenes/game/dialogs/` 目录，不使用系统 `showModal`，以保证 UI 风格与主界面一致。
+
+---
+
+## 11. 渲染相关非微信 API 约定
+
+虽不是 `wx.*` API，但项目内高频使用，整理如下：
+
+| API | 说明 | 典型调用处 |
+|-----|------|-----------|
+| `ctx.save() / ctx.restore()` | 保存/恢复画布状态 | 所有 `renders/*.js` 在改 alpha/transform 前后必须成对调用 |
+| `ctx.globalAlpha` | 全局透明度 | `renders/endFx.js` 全屏结算特效渐入渐出 |
+| `ctx.translate / scale / rotate` | 坐标系变换 | `renders/flyAnim.js` 卡牌飞入槽位动画 |
+| `ctx.fillText()` + `textAlign/textBaseline` | 文本绘制 | `renders/timer.js` 关卡计时器、弹窗标题 |
+| `Date.now()` | 高精度时间戳 | 计时器 `levelStartTime` 与动画插值 |
 
 ---
 
@@ -243,4 +272,4 @@ wx.onShareAppMessage(() => ({
 | P0 必须 | 画布渲染、图片、触摸事件 | 没有这些游戏跑不起来 |
 | P1 重要 | 系统信息、网络请求、登录 | 适配和用户体系 |
 | P2 增强 | 音频、本地存储 | 提升游戏体验 |
-| P3 锦上添花 | 分享、界面 | 传播和美化 |
+| P3 已落地 | 分享（道具解锁/通关分享） | 已通过 `dialogs/propShare.js`、`dialogs/win.js` 接入 |
