@@ -4,6 +4,7 @@
  */
 
 const LEVELS = require('./levels')
+const themes = require('./renders/themes')
 
 // ==================== 屏幕比例参数（卡牌生成相关） ====================
 const BOARD_TOP        = 0.10   // 卡牌区顶部 = 屏幕高度 × 10%（标题下方）
@@ -12,8 +13,7 @@ const BOARD_BOTTOM     = 0.65   // 卡牌区底部 = 屏幕高度 × 65%
 const CARD_SIZE_SCALE  = 0.12   // 卡牌尺寸 = 屏幕宽度 × 12%
 const CARD_BLOCKED_THR = 0.1    // 遮挡判定阈值 = 重叠面积 ÷ 卡牌面积
 
-// 卡牌图标种类总数（需与 renders/cards.js 的 ICON_COUNT 保持一致）
-const ICON_COUNT = 18
+// 注：卡牌图标种类总数由当前主题 themes.getCurrent().iconCount 决定（多主题下动态取值）
 
 /**
  * 处理触摸事件，找到被点击的可操作卡牌
@@ -149,9 +149,10 @@ function generateCards(level, screenW, screenH) {
     }
   }
 
-  // 从 ICON_COUNT 种图标中随机挑选 iconTypes 种
+  // 从当前主题的 iconCount 种图标中随机挑选 iconTypes 种
+  const iconCount = themes.getCurrent().iconCount
   const allIcons = []
-  for (let i = 1; i <= ICON_COUNT; i++) allIcons.push(String(i))
+  for (let i = 1; i <= iconCount; i++) allIcons.push(String(i))
   shuffleArray(allIcons)
   const selectedIcons = allIcons.slice(0, cfg.iconTypes)
 

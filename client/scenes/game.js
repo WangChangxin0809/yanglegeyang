@@ -1,6 +1,7 @@
 const Scene = require('./base')
 const LEVELS = require('./game/levels')
 const renders = require('./game/renders/index')
+const themes = require('./game/renders/themes')
 const gameLogic = require('./game/gameLogic')
 const props = require('./game/props/index')
 const dialogs = require('./game/dialogs/index')
@@ -60,6 +61,9 @@ class GameScene extends Scene {
     this.revived = false
     this.endFx = null
     this.levelStartTime = Date.now()
+
+    // 随机选一套卡牌主题（每关开局重新抽取）
+    themes.pickRandom()
 
     // 重置道具次数
     props.init()
@@ -147,8 +151,11 @@ class GameScene extends Scene {
     const card = gameLogic.handleTouch(x, y, this.cards)
     if (!card) return
 
-    // 卡牌点击音效
-    playSfx('click')
+    // 卡牌点击音效：icon 1=牛, icon 2=马, 其他=普通点击
+    let _sfxKey = 'click'
+    if (card.icon === '1') _sfxKey = 'clickCow'
+    else if (card.icon === '2') _sfxKey = 'clickHorse'
+    playSfx(_sfxKey, { volume: 1.0 })
 
     // 标记卡牌移除（棋盘上不再显示）
     card.removed = true

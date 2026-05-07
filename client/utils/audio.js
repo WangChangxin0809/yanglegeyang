@@ -43,11 +43,17 @@ const BGM_GROUPS = {
 }
 
 // 音效键 → 相对路径（调用处用 key，避免硬编码路径散落各处）
+// 点击音效分三类（贴合「牛马日记」主题）：
+//   - click:      普通卡牌/按钮点击（每个主题 icon 3+ 的卡片）
+//   - clickCow:   牛卡片（每个主题 icon 1）
+//   - clickHorse: 马卡片（每个主题 icon 2）
 const SFX_KEYS = {
-  click:   'game/click.mp3',    // 卡牌/按钮点击
-  merge:   'game/merge.mp3',    // 三消合成
-  defeat:  'game/defeat.mp3',   // 失败
-  success: 'game/success.mp3',  // 胜利通关
+  click:      'game/click/normal.mp3',  // 普通点击
+  clickCow:   'game/click/cow.mp3',     // 牛卡片（icon 1）
+  clickHorse: 'game/click/horse.mp3',   // 马卡片（icon 2）
+  merge:      'game/merge.mp3',         // 三消合成
+  defeat:     'game/defeat.mp3',        // 失败
+  success:    'game/success.mp3',       // 胜利通关
 }
 
 /**

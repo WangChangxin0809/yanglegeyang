@@ -1,10 +1,14 @@
 /**
  * 卡牌渲染模块
  * 负责：卡牌图片预加载、棋盘卡牌绘制、图标查询
+ *
+ * 主题化：图标分主题存放于 images/game/cards/themes/<theme>/，
+ * ICON_IMGS 缓存按主题二级索引，getIconImg 根据 themes.getCurrent() 动态取图。
  */
 
 const { getImageUrl } = require('../../../utils/assets')
 const { isBlocked } = require('../gameLogic')
+const themes = require('./themes')
 
 // ==================== 屏幕比例参数 ====================
 const CARD_3D_DEPTH    = 0.1    // 3D厚度 = 卡牌尺寸 × 10%
@@ -12,22 +16,38 @@ const CARD_RADIUS      = 8      // 卡牌圆角半径（px）
 const CARD_ICON_PAD    = 0.07   // 卡牌图标内边距 = 卡牌尺寸 × 7%
 const CARD_FONT_SCALE  = 0.45   // 卡牌文字字号 = 卡牌尺寸 × 45%
 
-// 卡牌图标（18种动物卡牌图片）
-const ICON_COUNT = 18
-const ICON_IMGS = {}  // { '1': Image, '2': Image, ... }
+// 卡牌图标缓存：{ themeName: { '1': Image, '2': Image, ... } }
+const ICON_IMGS = {}
 
-/** 预加载所有卡牌图标 */
-function preload() {
-  for (let i = 1; i <= ICON_COUNT; i++) {
+/** 加载指定主题的全部图标（已加载的跳过） */
+function _loadTheme(theme) {
+  if (!ICON_IMGS[theme.name]) ICON_IMGS[theme.name] = {}
+  const map = ICON_IMGS[theme.name]
+  for (let i = 1; i <= theme.iconCount; i++) {
+    const key = String(i)
+    if (map[key]) continue
     const img = wx.createImage()
-    img.src = getImageUrl('game/cards/animals/' + i + '.png')
-    img.onload = () => { ICON_IMGS[String(i)] = img }
+    img.src = getImageUrl('game/cards/themes/' + theme.name + '/' + i + '.png')
+    img.onload = () => { map[key] = img }
   }
 }
 
-/** 获取卡牌图标图片 */
+/** 预加载所有主题（loading 场景调用，一次全部拉到本地缓存） */
+function preloadAll() {
+  for (const theme of themes.getAll()) {
+    _loadTheme(theme)
+  }
+}
+
+/** 预加载当前主题（关卡开始时兜底，正常 loading 已完成时 no-op） */
+function preload() {
+  _loadTheme(themes.getCurrent())
+}
+
+/** 获取当前主题下指定图标的图片 */
 function getIconImg(icon) {
-  return ICON_IMGS[icon] || null
+  const map = ICON_IMGS[themes.getCurrent().name]
+  return map ? (map[icon] || null) : null
 }
 
 /** 绘制圆角矩形路径 */
@@ -93,8 +113,8 @@ function renderCards(ctx, cards, peekCards, peekTimer) {
     roundRect(ctx, card.x, card.y, card.width, card.height, radius)
     ctx.stroke()
 
-    // 图标（图片或文字兄底）
-    const iconImg = ICON_IMGS[card.icon]
+    // 图标（图片或文字兜底）
+    const iconImg = getIconImg(card.icon)
     if (iconImg) {
       const pad = card.width * CARD_ICON_PAD
       if (blocked) { ctx.globalAlpha = 0.5 }
@@ -121,8 +141,8 @@ function renderCards(ctx, cards, peekCards, peekTimer) {
 
 module.exports = {
   preload,
+  preloadAll,
   renderCards,
   getIconImg,
-  ICON_COUNT,
   roundRect,
 }
