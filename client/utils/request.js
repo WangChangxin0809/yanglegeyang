@@ -10,9 +10,10 @@ const USER_STORAGE_KEY = 'hd_user_info'
  * 发起 HTTP 请求
  * @param {string} path - API 路径，如 '/api/auth/login'
  * @param {object} options - { method, data }
+ * @param {boolean} _retried - 内部参数：是否已因 401 重试过，避免死循环
  * @returns {Promise<object>} - 解析后的响应 data
  */
-function request(path, options = {}) {
+function request(path, options = {}, _retried = false) {
   const { method = 'GET', data = null } = options
   const url = GameGlobal.serverUrl + path
 
@@ -28,6 +29,19 @@ function request(path, options = {}) {
       data: data,
       header: header,
       success(res) {
+        // 401：token 无效/过期 → 静默 wx.login 换新 token 后重试一次
+        // 仅重试非登录接口且未重试过的请求，避免死循环
+        if (res.statusCode === 401 && !_retried && path !== '/api/auth/login') {
+          console.warn('[request] 401 鉴权失败，尝试重新登录后重试:', method, path)
+          login()
+            .then(() => request(path, options, true).then(resolve, reject))
+            .catch((err) => {
+              console.warn('[request] 重新登录失败，已清理登录态:', err && err.message)
+              clearAuth()
+              reject(new Error('登录已过期，请重新授权'))
+            })
+          return
+        }
         if (res.statusCode === 200 && res.data && res.data.code === 0) {
           resolve(res.data.data)
         } else {

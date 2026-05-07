@@ -24,7 +24,7 @@ const LOCAL_BASE = 'images'
 
 /**
  * 根据相对路径生成可直接赋给 Image.src 的完整 URL。
- * @param {string} relPath 相对 images/ 的路径，如 'game/cards/animals/1.png'
+ * @param {string} relPath 相对 images/ 的路径，如 'game/cards/themes/animals/1.png'
  * @returns {string}
  */
 function getImageUrl(relPath) {

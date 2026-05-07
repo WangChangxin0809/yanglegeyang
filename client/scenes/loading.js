@@ -1,6 +1,8 @@
 const Scene = require('./base')
 const { getImageUrl } = require('../utils/assets')
-const { preloadSfx } = require('../utils/audio')
+const { preloadSfx, SFX_KEYS } = require('../utils/audio')
+const themes = require('./game/renders/themes')
+const cardsRender = require('./game/renders/cards')
 
 /**
  * 加载场景
@@ -61,14 +63,18 @@ class LoadingScene extends Scene {
       getImageUrl('rank/medals/second.png'),
       getImageUrl('rank/medals/third.png'),
     ]
-    // 18 张动物卡面
-    for (let i = 1; i <= 18; i++) {
-      images.push(getImageUrl('game/cards/animals/' + i + '.png'))
+    // 卡牌主题：预加载全部主题的图标（每套 iconCount 张）
+    for (const theme of themes.getAll()) {
+      for (let i = 1; i <= theme.iconCount; i++) {
+        images.push(getImageUrl('game/cards/themes/' + theme.name + '/' + i + '.png'))
+      }
     }
+    // 同步填充 cards 模块的 ICON_IMGS，避免进入关卡时首帧空图（走微信图片缓存，不重复下载）
+    cardsRender.preloadAll()
 
-    // 总任务数 = 图片数 + 音效数（SFX_KEYS 共 4 个，这里硬编码简化，实际用 keys 数更稳）
-    const audioKeys = ['click', 'merge', 'defeat', 'success']
-    const totalCount = images.length + audioKeys.length
+    // 总任务数 = 图片数 + 音效数（动态读 SFX_KEYS，避免新增音效后遗漏）
+    const sfxCount = Object.keys(SFX_KEYS).length
+    const totalCount = images.length + sfxCount
     let loadedCount = 0
 
     if (totalCount === 0) {
