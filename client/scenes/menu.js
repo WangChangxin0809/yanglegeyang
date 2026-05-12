@@ -121,6 +121,7 @@ class MenuScene extends Scene {
     }
 
     // 标题图片
+    let subtitleY = height * 0.36 - 10
     if (this.titleImg) {
       const imgRatio = this.titleImg.width / this.titleImg.height
       const titleW = width * 0.98
@@ -135,7 +136,22 @@ class MenuScene extends Scene {
       ctx.rotate(angle)
       ctx.drawImage(this.titleImg, -titleW / 2, -titleH / 2, titleW, titleH)
       ctx.restore()
+
+      subtitleY = titleCY + titleH / 2 - 24
     }
+
+    // 标题下方副标题
+    ctx.save()
+    const subtitleFont = Math.round(width * 0.08)
+    ctx.font = 'bold ' + subtitleFont + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = '#ffffff'
+    ctx.strokeStyle = '#000000'
+    ctx.lineWidth = Math.max(2, Math.round(subtitleFont * 0.1))
+    ctx.strokeText('- 消除 -', width / 2, subtitleY)
+    ctx.fillText('- 消除 -', width / 2, subtitleY)
+    ctx.restore()
 
     // 开始游戏按钮
     const btn = this.startBtn

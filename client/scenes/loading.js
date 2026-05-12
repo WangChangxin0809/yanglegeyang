@@ -130,13 +130,29 @@ class LoadingScene extends Scene {
     ctx.textAlign = 'center'
 
     // 标题：优先用图片，未加载好时临时显示文字兑底
+    let subtitleY = height / 2 - 60 - 24
     if (this.titleImg) {
       const titleW = width * 0.6
       const titleH = titleW * (this.titleImg.height / this.titleImg.width)
-      ctx.drawImage(this.titleImg, (width - titleW) / 2, height / 2 - 60 - titleH, titleW, titleH)
+      const titleTop = height / 2 - 60 - titleH
+      ctx.drawImage(this.titleImg, (width - titleW) / 2, titleTop, titleW, titleH)
+      subtitleY = titleTop + titleH - 24
     } else {
       ctx.fillText('牛马日记', width / 2, height / 2 - 60)
     }
+
+    // 标题下方副标题
+    ctx.save()
+    const subtitleFont = Math.round(width * 0.08)
+    ctx.font = 'bold ' + subtitleFont + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+    ctx.fillStyle = '#ffffff'
+    ctx.strokeStyle = '#000000'
+    ctx.lineWidth = Math.max(2, Math.round(subtitleFont * 0.1))
+    ctx.strokeText('- 消除 -', width / 2, subtitleY)
+    ctx.fillText('- 消除 -', width / 2, subtitleY)
+    ctx.restore()
 
     const barWidth = width * 0.6
     const barHeight = 12
